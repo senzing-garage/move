@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -158,8 +160,11 @@ func (m *MoverImpl) writeStdout(recordchan chan queues.Record) bool {
 
 	writer := bufio.NewWriter(os.Stdout)
 	for record := range recordchan {
-		writer.WriteString(record.GetMessage())
-		writer.WriteString("\n")
+		_, err := writer.WriteString(record.GetMessage() + "\n")
+		if err != nil {
+			fmt.Println("Error writing to stdout")
+			return false
+		}
 	}
 	err = writer.Flush()
 	if err != nil {
@@ -177,6 +182,7 @@ func (m *MoverImpl) writeJSONLFile(fileName string, recordchan chan queues.Recor
 		fmt.Println("Error output file", fileName, "exists.")
 		return false
 	}
+	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
 	defer f.Close()
 	if err != nil {
@@ -192,8 +198,11 @@ func (m *MoverImpl) writeJSONLFile(fileName string, recordchan chan queues.Recor
 
 	writer := bufio.NewWriter(f)
 	for record := range recordchan {
-		writer.WriteString(record.GetMessage())
-		writer.WriteString("\n")
+		_, err := writer.WriteString(record.GetMessage() + "\n")
+		if err != nil {
+			fmt.Println("Error writing to stdout")
+			return false
+		}
 	}
 	err = writer.Flush()
 	if err != nil {
@@ -211,6 +220,7 @@ func (m *MoverImpl) writeGZFile(fileName string, recordchan chan queues.Record) 
 		fmt.Println("Error output file", fileName, "exists.")
 		return false
 	}
+	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
 	defer f.Close()
 	if err != nil {
@@ -227,8 +237,11 @@ func (m *MoverImpl) writeGZFile(fileName string, recordchan chan queues.Record) 
 	defer gzfile.Close()
 	writer := bufio.NewWriter(gzfile)
 	for record := range recordchan {
-		writer.WriteString(record.GetMessage())
-		writer.WriteString("\n")
+		_, err := writer.WriteString(record.GetMessage() + "\n")
+		if err != nil {
+			fmt.Println("Error writing to stdout")
+			return false
+		}
 	}
 	err = writer.Flush()
 	if err != nil {
@@ -244,7 +257,7 @@ func (m *MoverImpl) writeGZFile(fileName string, recordchan chan queues.Record) 
 
 // this function attempts to determine the source of records.
 // it then parses the source and puts the records into the record channel.
-func (m *MoverImpl) read(ctx context.Context, recordchan chan queues.Record) {
+func (m *MoverImpl) read(ctx context.Context, recordchan chan queues.Record) error {
 
 	defer waitGroup.Done()
 
@@ -253,15 +266,18 @@ func (m *MoverImpl) read(ctx context.Context, recordchan chan queues.Record) {
 
 	if inputURLLen == 0 {
 		//assume stdin
-		m.readStdin(recordchan)
-		return
+		success := m.readStdin(recordchan)
+		if !success {
+			return errors.New("Unable to read stdin")
+		}
+		return nil
 	}
 
 	//This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
 	if len(inputURL) < 5 {
 		fmt.Printf("ERROR: check the inputURL parameter: %s\n", inputURL)
-		return
+		return errors.New(fmt.Sprintf("ERROR: check the inputURL parameter: %s\n", inputURL))
 	}
 
 	fmt.Println("inputURL: ", inputURL)
@@ -273,29 +289,31 @@ func (m *MoverImpl) read(ctx context.Context, recordchan chan queues.Record) {
 	if u.Scheme == "file" {
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
 			fmt.Println("Reading as a JSONL file.")
-			m.readJSONLFile(u.Path, recordchan)
+			return m.readJSONLFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			fmt.Println("Reading as a GZ file.")
-			m.readGZFile(u.Path, recordchan)
+			return m.readGZFile(u.Path, recordchan)
 		} else {
 			valid := m.validate(u.Path)
 			fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
 			close(recordchan)
+			return errors.New("Unable to process file")
 		}
 	} else if u.Scheme == "http" || u.Scheme == "https" {
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
 			fmt.Println("Reading as a JSONL resource.")
-			m.readJSONLResource(inputURL, recordchan)
+			return m.readJSONLResource(inputURL, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			fmt.Println("Reading as a GZ resource.")
-			m.readGZResource(inputURL, recordchan)
+			return m.readGZResource(inputURL, recordchan)
 		} else {
 			fmt.Println("If this is a valid JSONL file, please rename with the .jsonl extension or use the file type override (--fileType).")
+			return errors.New("Unable to process file")
 		}
 	} else {
 		msg := fmt.Sprintf("We don't handle %s input URLs.", u.Scheme)
-		panic(msg)
+		return errors.New(msg)
 	}
 }
 
@@ -362,6 +380,7 @@ func (m *MoverImpl) readStdin(recordchan chan queues.Record) bool {
 
 // opens and reads a JSONL http resource
 func (m *MoverImpl) readJSONLResource(jsonURL string, recordchan chan queues.Record) error {
+	// #nosec G107
 	response, err := http.Get(jsonURL)
 	if err != nil {
 		return err
@@ -376,6 +395,7 @@ func (m *MoverImpl) readJSONLResource(jsonURL string, recordchan chan queues.Rec
 
 // opens and reads a JSONL file
 func (m *MoverImpl) readJSONLFile(jsonFile string, recordchan chan queues.Record) error {
+	jsonFile = filepath.Clean(jsonFile)
 	file, err := os.Open(jsonFile)
 	if err != nil {
 		return err
@@ -390,6 +410,7 @@ func (m *MoverImpl) readJSONLFile(jsonFile string, recordchan chan queues.Record
 
 // opens and reads a JSONL file that has been Gzipped
 func (m *MoverImpl) readGZFile(gzFile string, recordchan chan queues.Record) error {
+	gzFile = filepath.Clean(gzFile)
 	gzipfile, err := os.Open(gzFile)
 	if err != nil {
 		return err
@@ -408,6 +429,7 @@ func (m *MoverImpl) readGZFile(gzFile string, recordchan chan queues.Record) err
 
 // ----------------------------------------------------------------------------
 func (m *MoverImpl) readGZResource(gzURL string, recordchan chan queues.Record) error {
+	// #nosec G107
 	response, err := http.Get(gzURL)
 	if err != nil {
 		fmt.Println("Fatal error retrieving inputURL.", err)
@@ -435,6 +457,7 @@ func (m *MoverImpl) validate(jsonFile string) bool {
 
 	if jsonFile != "" {
 		var err error
+		jsonFile = filepath.Clean(jsonFile)
 		file, err = os.Open(jsonFile)
 		if err != nil {
 			log.Fatal(err)
