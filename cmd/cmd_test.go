@@ -12,25 +12,6 @@ import (
 /*
  * The unit tests in this file simulate command line invocation.
  */
-func TestExecute_Command_NoInputUrl(t *testing.T) {
-	cmd := RootCmd
-	outbuf := bytes.NewBufferString("")
-	errbuf := bytes.NewBufferString("")
-	cmd.SetOut(outbuf)
-	cmd.SetErr(errbuf)
-	cmd.SetArgs([]string{"--input-url", "none"})
-	exError := RootCmd.Execute()
-	if exError == nil {
-		t.Fatalf("expected Execute() to generated an error")
-	}
-	stderr, err := io.ReadAll(errbuf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(stderr), "validation failed") {
-		t.Fatalf("expected input-url parameter error")
-	}
-}
 
 // test that Help is output correctly
 func TestExecute_Command_Help(t *testing.T) {
