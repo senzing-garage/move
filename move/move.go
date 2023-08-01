@@ -4,12 +4,9 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -119,7 +116,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 	if err != nil {
 		panic(err)
 	}
-	m.printURL(u)
+	// m.printURL(u)
 	switch u.Scheme {
 	case "amqp":
 		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
@@ -132,8 +129,8 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 			fmt.Println("Reading as a GZ file.")
 			success = m.writeGZFile(u.Path, recordchan)
 		} else {
-			valid := m.validate(u.Path)
-			fmt.Println("Is valid JSON?", valid)
+			// valid := m.validate(u.Path)
+			// fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
 			fmt.Println("Only able to process JSON-Lines files at this time.")
 			success = false
@@ -195,12 +192,12 @@ func (m *MoveImpl) writeJSONLFile(fileName string, recordchan chan queues.Record
 		fmt.Println("Fatal error opening", fileName, err)
 		return false
 	}
-	info, err := f.Stat()
+	_, err = f.Stat()
 	if err != nil {
 		fmt.Println("Fatal error opening", fileName, err)
 		return false
 	}
-	m.printFileInfo(info)
+	// m.printFileInfo(info)
 
 	writer := bufio.NewWriter(f)
 	for record := range recordchan {
@@ -233,12 +230,12 @@ func (m *MoveImpl) writeGZFile(fileName string, recordchan chan queues.Record) b
 		fmt.Println("Fatal error opening", fileName, err)
 		return false
 	}
-	info, err := f.Stat()
+	_, err = f.Stat()
 	if err != nil {
 		fmt.Println("Fatal error opening", fileName, err)
 		return false
 	}
-	m.printFileInfo(info)
+	// m.printFileInfo(info)
 	gzfile := gzip.NewWriter(f)
 	defer gzfile.Close()
 	writer := bufio.NewWriter(gzfile)
@@ -300,8 +297,8 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 			fmt.Println("Reading as a GZ file.")
 			return m.readGzipFile(u.Path, recordchan)
 		} else {
-			valid := m.validate(u.Path)
-			fmt.Println("Is valid JSON?", valid)
+			// valid := m.validate(u.Path)
+			// fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
 			close(recordchan)
 			return errors.New("Unable to process file")
@@ -462,104 +459,105 @@ func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Recor
 // ----------------------------------------------------------------------------
 
 // validates that a file is valid JSON
-func (m *MoveImpl) validate(jsonFile string) bool {
+// TODO:  What is a valid JSON file?
+// func (m *MoveImpl) validate(jsonFile string) bool {
 
-	var file *os.File = os.Stdin
+// 	var file *os.File = os.Stdin
 
-	if jsonFile != "" {
-		var err error
-		jsonFile = filepath.Clean(jsonFile)
-		file, err = os.Open(jsonFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	info, err := file.Stat()
-	if err != nil {
-		panic(err)
-	}
-	if info.Size() <= 0 {
-		log.Fatal("No file found to validate.")
-	}
-	m.printFileInfo(info)
+// 	if jsonFile != "" {
+// 		var err error
+// 		jsonFile = filepath.Clean(jsonFile)
+// 		file, err = os.Open(jsonFile)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 	}
+// 	info, err := file.Stat()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	if info.Size() <= 0 {
+// 		log.Fatal("No file found to validate.")
+// 	}
+// 	m.printFileInfo(info)
 
-	bytes := m.getBytes(file)
-	if err := file.Close(); err != nil {
-		log.Fatal(err)
-	}
+// 	bytes := m.getBytes(file)
+// 	if err := file.Close(); err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	valid := json.Valid(bytes)
-	return valid
-}
+// 	valid := json.Valid(bytes)
+// 	return valid
+// }
 
 // ----------------------------------------------------------------------------
 
 // used for validating a JSON file
 // TODO:  this seems like a naive implementation.  What if the file is very large?
-func (m *MoveImpl) getBytes(file *os.File) []byte {
+// func (m *MoveImpl) getBytes(file *os.File) []byte {
 
-	reader := bufio.NewReader(file)
-	var output []byte
+// 	reader := bufio.NewReader(file)
+// 	var output []byte
 
-	for {
-		input, err := reader.ReadByte()
-		if err != nil && err == io.EOF {
-			break
-		}
-		output = append(output, input)
-	}
-	return output
-}
+// 	for {
+// 		input, err := reader.ReadByte()
+// 		if err != nil && err == io.EOF {
+// 			break
+// 		}
+// 		output = append(output, input)
+// 	}
+// 	return output
+// }
 
 // ----------------------------------------------------------------------------
 
 // print basic file information.
 // TODO:  should this info be logged?  DELETE ME?
-func (m *MoveImpl) printFileInfo(info os.FileInfo) {
-	fmt.Println("name: ", info.Name())
-	fmt.Println("size: ", info.Size())
-	fmt.Println("mode: ", info.Mode())
-	fmt.Println("mod time: ", info.ModTime())
-	fmt.Println("is dir: ", info.IsDir())
-	if info.Mode()&os.ModeDevice == os.ModeDevice {
-		fmt.Println("detected device: ", os.ModeDevice)
-	}
-	if info.Mode()&os.ModeCharDevice == os.ModeCharDevice {
-		fmt.Println("detected char device: ", os.ModeCharDevice)
-	}
-	if info.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
-		fmt.Println("detected named pipe: ", os.ModeNamedPipe)
-	}
-}
+// func (m *MoveImpl) printFileInfo(info os.FileInfo) {
+// 	fmt.Println("name: ", info.Name())
+// 	fmt.Println("size: ", info.Size())
+// 	fmt.Println("mode: ", info.Mode())
+// 	fmt.Println("mod time: ", info.ModTime())
+// 	fmt.Println("is dir: ", info.IsDir())
+// 	if info.Mode()&os.ModeDevice == os.ModeDevice {
+// 		fmt.Println("detected device: ", os.ModeDevice)
+// 	}
+// 	if info.Mode()&os.ModeCharDevice == os.ModeCharDevice {
+// 		fmt.Println("detected char device: ", os.ModeCharDevice)
+// 	}
+// 	if info.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
+// 		fmt.Println("detected named pipe: ", os.ModeNamedPipe)
+// 	}
+// }
 
 // ----------------------------------------------------------------------------
 
 // print out basic URL information.
 // TODO:  should this info be logged?  DELETE ME?
-func (m *MoveImpl) printURL(u *url.URL) {
+// func (m *MoveImpl) printURL(u *url.URL) {
 
-	fmt.Println("\tScheme: ", u.Scheme)
-	fmt.Println("\tUser full: ", u.User)
-	fmt.Println("\tUser name: ", u.User.Username())
-	p, _ := u.User.Password()
-	fmt.Println("\tPassword: ", p)
+// 	fmt.Println("\tScheme: ", u.Scheme)
+// 	fmt.Println("\tUser full: ", u.User)
+// 	fmt.Println("\tUser name: ", u.User.Username())
+// 	p, _ := u.User.Password()
+// 	fmt.Println("\tPassword: ", p)
 
-	fmt.Println("\tHost full: ", u.Host)
-	host, port, _ := net.SplitHostPort(u.Host)
-	fmt.Println("\tHost: ", host)
-	fmt.Println("\tPort: ", port)
+// 	fmt.Println("\tHost full: ", u.Host)
+// 	host, port, _ := net.SplitHostPort(u.Host)
+// 	fmt.Println("\tHost: ", host)
+// 	fmt.Println("\tPort: ", port)
 
-	fmt.Println("\tPath: ", u.Path)
-	fmt.Println("\tFragment: ", u.Fragment)
+// 	fmt.Println("\tPath: ", u.Path)
+// 	fmt.Println("\tFragment: ", u.Fragment)
 
-	fmt.Println("\tQuery string: ", u.RawQuery)
-	raw, _ := url.ParseQuery(u.RawQuery)
-	fmt.Println("\tParsed query string: ", raw)
-	for key, value := range raw {
-		fmt.Println("Key:", key, "=>", "Value:", value[0])
-	}
+// 	fmt.Println("\tQuery string: ", u.RawQuery)
+// 	raw, _ := url.ParseQuery(u.RawQuery)
+// 	fmt.Println("\tParsed query string: ", raw)
+// 	for key, value := range raw {
+// 		fmt.Println("Key:", key, "=>", "Value:", value[0])
+// 	}
 
-}
+// }
 
 // ----------------------------------------------------------------------------
 

@@ -280,6 +280,22 @@ func TestReadGzipResource_file_does_not_exist(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
+// test validate method
+// ----------------------------------------------------------------------------
+
+// validate a json file
+// func TestValidate(t *testing.T) {
+
+// 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+// 	defer cleanUpTempFile()
+
+// 	mover := &MoveImpl{}
+// 	result := mover.validate(filename)
+
+// 	assert.True(t, result)
+// }
+
+// ----------------------------------------------------------------------------
 // Helper functions
 // ----------------------------------------------------------------------------
 
@@ -329,7 +345,7 @@ func createTempGzDataFile(t *testing.T, content string) (filename string, cleanU
 		}
 }
 
-// serve the requested resource on the requested port
+// serve the requested resource on a random port
 func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, int) {
 	t.Helper()
 	listener, err := net.Listen("tcp", ":0")
