@@ -174,7 +174,7 @@ func TestReadJsonlResource(t *testing.T) {
 	server, listener, port := serveResource(t, filename)
 	go func() {
 		if err := server.Serve(*listener); err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe(): %v", err)
+			log.Fatalf("server.Serve(): %v", err)
 		}
 	}()
 	recordchan := make(chan queues.Record, 15)
@@ -203,13 +203,25 @@ func TestReadJsonlResource(t *testing.T) {
 // attempt to read jsonl file that doesn't exist
 func TestReadJsonlResource_file_does_not_exist(t *testing.T) {
 
-	filename := "bad.jsonl"
+	filename := "/bad.jsonl"
 
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
 	recordchan := make(chan queues.Record, 15)
 
+	idx := strings.LastIndex(filename, "/")
 	mover := &MoveImpl{}
-	err := mover.readJsonlResource(fmt.Sprintf("file://%s", filename), recordchan)
+	err := mover.readJsonlResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 	assert.Error(t, err)
+
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+
 }
 
 // read jsonl file successfully, no record validation errors
@@ -220,7 +232,7 @@ func TestReadGzipResource(t *testing.T) {
 	server, listener, port := serveResource(t, filename)
 	go func() {
 		if err := server.Serve(*listener); err != http.ErrServerClosed {
-			log.Fatalf("ListenAndServe(): %v", err)
+			log.Fatalf("server.Serve(): %v", err)
 		}
 	}()
 	recordchan := make(chan queues.Record, 15)
@@ -248,14 +260,23 @@ func TestReadGzipResource(t *testing.T) {
 // attempt to read jsonl file that doesn't exist
 func TestReadGzipResource_file_does_not_exist(t *testing.T) {
 
-	filename := "bad.gz"
+	filename := "/bad.gz"
 
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
 	recordchan := make(chan queues.Record, 15)
+	idx := strings.LastIndex(filename, "/")
 
 	mover := &MoveImpl{}
-	err := mover.readGzipFile(fmt.Sprintf("file://%s", filename), recordchan)
+	err := mover.readGzipResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 	assert.Error(t, err)
-
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
 }
 
 // ----------------------------------------------------------------------------

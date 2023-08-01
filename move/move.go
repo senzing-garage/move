@@ -385,15 +385,18 @@ func (m *MoveImpl) readStdin(recordchan chan queues.Record) bool {
 // ----------------------------------------------------------------------------
 
 // opens and reads a JSONL http resource
-func (m *MoveImpl) readJsonlResource(jsonURL string, recordchan chan queues.Record) error {
+func (m *MoveImpl) readJsonlResource(jsonUrl string, recordchan chan queues.Record) error {
 	// #nosec G107
-	response, err := http.Get(jsonURL)
+	response, err := http.Get(jsonUrl)
 	if err != nil {
 		return err
 	}
+	if response.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Unable to retrieve %s, return code %d", jsonUrl, response.StatusCode))
+	}
 	defer response.Body.Close()
 
-	m.processJsonl(jsonURL, response.Body, recordchan)
+	m.processJsonl(jsonUrl, response.Body, recordchan)
 	return nil
 }
 
@@ -415,9 +418,9 @@ func (m *MoveImpl) readJsonlFile(jsonFile string, recordchan chan queues.Record)
 // ----------------------------------------------------------------------------
 
 // opens and reads a Jsonl file that has been Gzipped
-func (m *MoveImpl) readGzipFile(gzFileName string, recordchan chan queues.Record) error {
-	gzFileName = filepath.Clean(gzFileName)
-	gzipfile, err := os.Open(gzFileName)
+func (m *MoveImpl) readGzipFile(gzipFileName string, recordchan chan queues.Record) error {
+	gzipFileName = filepath.Clean(gzipFileName)
+	gzipfile, err := os.Open(gzipFileName)
 	if err != nil {
 		return err
 	}
@@ -429,17 +432,20 @@ func (m *MoveImpl) readGzipFile(gzFileName string, recordchan chan queues.Record
 	}
 	defer reader.Close()
 
-	m.processJsonl(gzFileName, reader, recordchan)
+	m.processJsonl(gzipFileName, reader, recordchan)
 	return nil
 }
 
 // ----------------------------------------------------------------------------
-func (m *MoveImpl) readGzipResource(gzURL string, recordchan chan queues.Record) error {
+func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Record) error {
 	// #nosec G107
-	response, err := http.Get(gzURL)
+	response, err := http.Get(gzipUrl)
 	if err != nil {
 		fmt.Println("Fatal error retrieving inputURL.", err)
 		return err
+	}
+	if response.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Unable to retrieve %s, return code %d", gzipUrl, response.StatusCode))
 	}
 	defer response.Body.Close()
 	reader, err := gzip.NewReader(response.Body)
@@ -449,7 +455,7 @@ func (m *MoveImpl) readGzipResource(gzURL string, recordchan chan queues.Record)
 	}
 	defer reader.Close()
 
-	m.processJsonl(gzURL, reader, recordchan)
+	m.processJsonl(gzipUrl, reader, recordchan)
 	return nil
 }
 
