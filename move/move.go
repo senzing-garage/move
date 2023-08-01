@@ -309,10 +309,10 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 	} else if u.Scheme == "http" || u.Scheme == "https" {
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
 			fmt.Println("Reading as a JSONL resource.")
-			return m.readJSONLResource(inputUrl, recordchan)
+			return m.readJsonlResource(inputUrl, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			fmt.Println("Reading as a GZ resource.")
-			return m.readGZResource(inputUrl, recordchan)
+			return m.readGzipResource(inputUrl, recordchan)
 		} else {
 			fmt.Println("If this is a valid JSONL file, please rename with the .jsonl extension or use the file type override (--fileType).")
 			return errors.New("Unable to process file")
@@ -385,7 +385,7 @@ func (m *MoveImpl) readStdin(recordchan chan queues.Record) bool {
 // ----------------------------------------------------------------------------
 
 // opens and reads a JSONL http resource
-func (m *MoveImpl) readJSONLResource(jsonURL string, recordchan chan queues.Record) error {
+func (m *MoveImpl) readJsonlResource(jsonURL string, recordchan chan queues.Record) error {
 	// #nosec G107
 	response, err := http.Get(jsonURL)
 	if err != nil {
@@ -434,7 +434,7 @@ func (m *MoveImpl) readGzipFile(gzFileName string, recordchan chan queues.Record
 }
 
 // ----------------------------------------------------------------------------
-func (m *MoveImpl) readGZResource(gzURL string, recordchan chan queues.Record) error {
+func (m *MoveImpl) readGzipResource(gzURL string, recordchan chan queues.Record) error {
 	// #nosec G107
 	response, err := http.Get(gzURL)
 	if err != nil {
@@ -456,7 +456,6 @@ func (m *MoveImpl) readGZResource(gzURL string, recordchan chan queues.Record) e
 // ----------------------------------------------------------------------------
 
 // validates that a file is valid JSON
-// TODO:  implement loading of a JSON file.  what is the actual JSON format?
 func (m *MoveImpl) validate(jsonFile string) bool {
 
 	var file *os.File = os.Stdin

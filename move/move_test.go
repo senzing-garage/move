@@ -3,7 +3,10 @@ package move
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -20,8 +23,8 @@ import (
 // read jsonl file successfully, no record validation errors
 func TestProcessJsonl(t *testing.T) {
 
-	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
-	defer moreCleanUp()
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -48,8 +51,8 @@ func TestProcessJsonl(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestProcessJsonl_bad_records(t *testing.T) {
 
-	filename, moreCleanUp := createTempDataFile(t, testBadData, "jsonl")
-	defer moreCleanUp()
+	filename, cleanUpTempFile := createTempDataFile(t, testBadData, "jsonl")
+	defer cleanUpTempFile()
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -74,14 +77,14 @@ func TestProcessJsonl_bad_records(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
-// test read methods
+// test file read methods
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
 func TestReadJsonlFile(t *testing.T) {
 
-	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
-	defer moreCleanUp()
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
 
 	recordchan := make(chan queues.Record, 15)
 
@@ -118,10 +121,10 @@ func TestReadJsonlFile_file_does_not_exist(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestReadGzFile(t *testing.T) {
+func TestReadGzipFile(t *testing.T) {
 
-	filename, moreCleanUp := createTempGzDataFile(t, testGoodData)
-	defer moreCleanUp()
+	filename, cleanUpTempFile := createTempGzDataFile(t, testGoodData)
+	defer cleanUpTempFile()
 
 	recordchan := make(chan queues.Record, 15)
 
@@ -144,7 +147,7 @@ func TestReadGzFile(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestReadGzFile_file_does_not_exist(t *testing.T) {
+func TestReadGzipFile_file_does_not_exist(t *testing.T) {
 
 	filename := "bad.gz"
 
@@ -154,6 +157,103 @@ func TestReadGzFile_file_does_not_exist(t *testing.T) {
 		InputUrl: fmt.Sprintf("file://%s", filename),
 	}
 	err := mover.readGzipFile(filename, recordchan)
+	assert.Error(t, err)
+
+}
+
+// ----------------------------------------------------------------------------
+// test resource read methods
+// ----------------------------------------------------------------------------
+
+// read jsonl file successfully, no record validation errors
+func TestReadJsonlResource(t *testing.T) {
+
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
+
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe(): %v", err)
+		}
+	}()
+	recordchan := make(chan queues.Record, 15)
+	idx := strings.LastIndex(filename, "/")
+	mover := &MoveImpl{
+		RecordMax:     11,
+		RecordMin:     2,
+		RecordMonitor: 5,
+	}
+	err := mover.readJsonlResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
+	for range recordchan {
+		count++
+	}
+
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, 10, count)
+}
+
+// attempt to read jsonl file that doesn't exist
+func TestReadJsonlResource_file_does_not_exist(t *testing.T) {
+
+	filename := "bad.jsonl"
+
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{}
+	err := mover.readJsonlResource(fmt.Sprintf("file://%s", filename), recordchan)
+	assert.Error(t, err)
+}
+
+// read jsonl file successfully, no record validation errors
+func TestReadGzipResource(t *testing.T) {
+
+	filename, moreCleanUp := createTempGzDataFile(t, testGoodData)
+	defer moreCleanUp()
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe(): %v", err)
+		}
+	}()
+	recordchan := make(chan queues.Record, 15)
+	idx := strings.LastIndex(filename, "/")
+	mover := &MoveImpl{
+		RecordMax:     11,
+		RecordMin:     2,
+		RecordMonitor: 5,
+	}
+	err := mover.readGzipResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
+	for range recordchan {
+		count++
+	}
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, 10, count)
+}
+
+// attempt to read jsonl file that doesn't exist
+func TestReadGzipResource_file_does_not_exist(t *testing.T) {
+
+	filename := "bad.gz"
+
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{}
+	err := mover.readGzipFile(fmt.Sprintf("file://%s", filename), recordchan)
 	assert.Error(t, err)
 
 }
@@ -209,16 +309,20 @@ func createTempGzDataFile(t *testing.T, content string) (filename string, cleanU
 }
 
 // serve the requested resource on the requested port
-func serveResource(t *testing.T, port int, filename string) *http.Server {
+func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, int) {
 	t.Helper()
-
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
 	idx := strings.LastIndex(filename, "/")
 	fs := http.FileServer(http.Dir(filename[:idx]))
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: fs,
 	}
-	return &server
+	return &server, &listener, port
 
 }
 
