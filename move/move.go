@@ -95,10 +95,10 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 
 	defer waitGroup.Done()
 
-	outputURL := m.OutputUrl
-	outputURLLen := len(outputURL)
+	outputUrl := m.OutputUrl
+	outputUrlLen := len(outputUrl)
 
-	if outputURLLen == 0 {
+	if outputUrlLen == 0 {
 		//assume stdout
 		m.writeStdout(recordchan)
 		return
@@ -106,28 +106,28 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 
 	//This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
-	if len(outputURL) < 5 {
-		fmt.Printf("ERROR: check the inputURL parameter: %s\n", outputURL)
+	if len(outputUrl) < 5 {
+		fmt.Printf("ERROR: check the inputURL parameter: %s\n", outputUrl)
 		return
 	}
 
-	fmt.Println("outputURL: ", outputURL)
-	u, err := url.Parse(outputURL)
+	fmt.Println("outputUrl: ", outputUrl)
+	u, err := url.Parse(outputUrl)
 	if err != nil {
 		panic(err)
 	}
 	// m.printURL(u)
 	switch u.Scheme {
 	case "amqp":
-		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		rabbitmq.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	case "file":
 		success := true
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
-			fmt.Println("Reading as a JSONL file.")
-			success = m.writeJSONLFile(u.Path, recordchan)
+			fmt.Println("Reading as a Jsonl file.")
+			success = m.writeJsonlFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
-			fmt.Println("Reading as a GZ file.")
-			success = m.writeGZFile(u.Path, recordchan)
+			fmt.Println("Reading as a gzip file.")
+			success = m.writeGzipFile(u.Path, recordchan)
 		} else {
 			// valid := m.validate(u.Path)
 			// fmt.Println("Is valid JSON?", valid)
@@ -141,12 +141,12 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 	case "sqs":
 		//allows for using a dummy URL with just a queue-name
 		// eg  sqs://lookup?queue-name=myqueue
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		sqs.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	case "https":
 		//uses actual AWS SQS URL  TODO: detect sqs/amazonaws url?
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		sqs.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	default:
-		fmt.Println("Unknown URL Scheme.  Unable to write to:", outputURL)
+		fmt.Println("Unknown Url Scheme.  Unable to write to:", outputUrl)
 	}
 	fmt.Println("So long and thanks for all the fish.")
 }
@@ -179,7 +179,7 @@ func (m *MoveImpl) writeStdout(recordchan chan queues.Record) bool {
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) writeJSONLFile(fileName string, recordchan chan queues.Record) bool {
+func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record) bool {
 	_, err := os.Stat(fileName)
 	if err == nil { //file exists
 		fmt.Println("Error output file", fileName, "exists.")
@@ -217,7 +217,7 @@ func (m *MoveImpl) writeJSONLFile(fileName string, recordchan chan queues.Record
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) writeGZFile(fileName string, recordchan chan queues.Record) bool {
+func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record) bool {
 	_, err := os.Stat(fileName)
 	if err == nil { //file exists
 		fmt.Println("Error output file", fileName, "exists.")
