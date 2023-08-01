@@ -115,6 +115,46 @@ func TestReadJsonlFile_file_does_not_exist(t *testing.T) {
 	}
 	err := mover.readJsonlFile(filename, recordchan)
 	assert.Error(t, err)
+}
+
+// read jsonl file successfully, no record validation errors
+func TestReadGzFile(t *testing.T) {
+
+	filename, moreCleanUp := createTempGzDataFile(t, testGoodData)
+	defer moreCleanUp()
+
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{
+		InputUrl:      fmt.Sprintf("file://%s", filename),
+		RecordMax:     11,
+		RecordMin:     2,
+		RecordMonitor: 5,
+	}
+	err := mover.readGzipFile(filename, recordchan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count := 0
+	for range recordchan {
+		count++
+	}
+	assert.Equal(t, 10, count)
+}
+
+// attempt to read jsonl file that doesn't exist
+func TestReadGzFile_file_does_not_exist(t *testing.T) {
+
+	filename := "bad.gz"
+
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{
+		InputUrl: fmt.Sprintf("file://%s", filename),
+	}
+	err := mover.readGzipFile(filename, recordchan)
+	assert.Error(t, err)
 
 }
 

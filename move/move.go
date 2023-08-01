@@ -298,7 +298,7 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 			return m.readJsonlFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			fmt.Println("Reading as a GZ file.")
-			return m.readGZFile(u.Path, recordchan)
+			return m.readGzipFile(u.Path, recordchan)
 		} else {
 			valid := m.validate(u.Path)
 			fmt.Println("Is valid JSON?", valid)
@@ -399,7 +399,7 @@ func (m *MoveImpl) readJSONLResource(jsonURL string, recordchan chan queues.Reco
 
 // ----------------------------------------------------------------------------
 
-// opens and reads a JSONL file
+// opens and reads a Jsonl file
 func (m *MoveImpl) readJsonlFile(jsonFile string, recordchan chan queues.Record) error {
 	jsonFile = filepath.Clean(jsonFile)
 	file, err := os.Open(jsonFile)
@@ -414,10 +414,10 @@ func (m *MoveImpl) readJsonlFile(jsonFile string, recordchan chan queues.Record)
 
 // ----------------------------------------------------------------------------
 
-// opens and reads a JSONL file that has been Gzipped
-func (m *MoveImpl) readGZFile(gzFile string, recordchan chan queues.Record) error {
-	gzFile = filepath.Clean(gzFile)
-	gzipfile, err := os.Open(gzFile)
+// opens and reads a Jsonl file that has been Gzipped
+func (m *MoveImpl) readGzipFile(gzFileName string, recordchan chan queues.Record) error {
+	gzFileName = filepath.Clean(gzFileName)
+	gzipfile, err := os.Open(gzFileName)
 	if err != nil {
 		return err
 	}
@@ -429,7 +429,7 @@ func (m *MoveImpl) readGZFile(gzFile string, recordchan chan queues.Record) erro
 	}
 	defer reader.Close()
 
-	m.processJsonl(gzFile, reader, recordchan)
+	m.processJsonl(gzFileName, reader, recordchan)
 	return nil
 }
 
