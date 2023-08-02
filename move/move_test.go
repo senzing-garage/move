@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/senzing/go-queuing/queues"
+	"github.com/senzing/go-queueing/queues"
 	"github.com/stretchr/testify/assert"
 )
 

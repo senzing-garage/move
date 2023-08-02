@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/senzing/go-common/record"
-	"github.com/senzing/go-queuing/queues"
-	"github.com/senzing/go-queuing/queues/rabbitmq"
-	"github.com/senzing/go-queuing/queues/sqs"
+	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing/go-queueing/queues/rabbitmq"
+	"github.com/senzing/go-queueing/queues/sqs"
 )
 
 // ----------------------------------------------------------------------------
@@ -146,7 +146,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 		//uses actual AWS SQS URL  TODO: detect sqs/amazonaws url?
 		sqs.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	default:
-		fmt.Println("Unknown Url Scheme.  Unable to write to:", outputUrl)
+		fmt.Println("Unknow Scheme.  Unable to write to:", outputUrl)
 	}
 	fmt.Println("So long and thanks for all the fish.")
 }
