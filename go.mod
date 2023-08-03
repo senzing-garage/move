@@ -3,7 +3,7 @@ module github.com/senzing/move
 go 1.20
 
 require (
-	github.com/senzing/go-cmdhelping v0.1.3
+	github.com/senzing/go-cmdhelping v0.1.4
 	github.com/senzing/go-common v0.2.8
 	github.com/senzing/go-queuing v0.0.0-20230731225823-c28207d4de49
 	github.com/spf13/cobra v1.7.0
