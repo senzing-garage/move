@@ -4,7 +4,8 @@ go 1.20
 
 require (
 	github.com/senzing/go-cmdhelping v0.1.4
-	github.com/senzing/go-common v0.2.8
+	github.com/senzing/go-common v0.2.10
+	github.com/senzing/go-queueing v0.0.0-20230802183223-1eb2a0c3f574
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 )
@@ -40,7 +41,6 @@ require (
 	github.com/senzing/go-logging v1.3.1 // indirect
 	github.com/senzing/go-messaging v1.3.1 // indirect
 	github.com/senzing/go-observing v0.2.6 // indirect
-	github.com/senzing/go-queueing v0.0.0-20230802183223-1eb2a0c3f574 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
