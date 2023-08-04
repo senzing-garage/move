@@ -90,12 +90,12 @@ func RunE(_ *cobra.Command, _ []string) error {
 
 	ctx := context.Background()
 
-	mover := &move.MoverImpl{
+	mover := &move.MoveImpl{
 		FileType:                  viper.GetString(option.InputFileType.Arg),
-		InputURL:                  viper.GetString(option.InputUrl.Arg),
+		InputUrl:                  viper.GetString(option.InputUrl.Arg),
 		LogLevel:                  viper.GetString(option.LogLevel.Arg),
 		MonitoringPeriodInSeconds: viper.GetInt(option.MonitoringPeriodInSeconds.Arg),
-		OutputURL:                 viper.GetString(option.OutputUrl.Arg),
+		OutputUrl:                 viper.GetString(option.OutputUrl.Arg),
 		RecordMax:                 viper.GetInt(option.RecordMax.Arg),
 		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
