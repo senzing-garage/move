@@ -280,6 +280,68 @@ func TestReadGzipResource_file_does_not_exist(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
+// test write methods
+// ----------------------------------------------------------------------------
+
+func TestMoveImpl_writeStdout(t *testing.T) {
+
+	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
+	defer moreCleanUp()
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{
+		// FileType:                  tt.fields.FileType,
+		InputUrl: fmt.Sprintf("file://%s", filename),
+		// LogLevel:                  tt.fields.LogLevel,
+		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
+		// OutputUrl:                 tt.fields.OutputUrl,
+		// RecordMax:                 tt.fields.RecordMax,
+		// RecordMin:                 tt.fields.RecordMin,
+		// RecordMonitor:             tt.fields.RecordMonitor,
+	}
+
+	err := mover.readJsonlFile(filename, recordchan)
+	if err != nil {
+		t.Error(err)
+	}
+	want := true
+	if got := mover.writeStdout(recordchan); got != want {
+		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
+	}
+}
+
+func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
+
+	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
+	defer moreCleanUp()
+	recordchan := make(chan queues.Record, 15)
+
+	mover := &MoveImpl{
+		// FileType:                  tt.fields.FileType,
+		InputUrl: fmt.Sprintf("file://%s", filename),
+		// LogLevel:                  tt.fields.LogLevel,
+		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
+		// OutputUrl:                 tt.fields.OutputUrl,
+		// RecordMax:                 tt.fields.RecordMax,
+		// RecordMin:                 tt.fields.RecordMin,
+		// RecordMonitor:             tt.fields.RecordMonitor,
+	}
+
+	err := mover.readJsonlFile(filename, recordchan)
+	if err != nil {
+		t.Error(err)
+	}
+	o := os.Stdout
+	os.Stdout = nil
+	want := false
+	if got := mover.writeStdout(recordchan); got != want {
+		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
+	}
+	os.Stdout = o
+
+}
+
+// ----------------------------------------------------------------------------
 // test validate method
 // ----------------------------------------------------------------------------
 
@@ -427,3 +489,41 @@ var testBadData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENTI
 {"SOCIAL_HANDLE": "shuddersv", "DATE_OF_BIRTH": "16/7/1974", "ADDR_STATE": "NC", "ADDR_POSTAL_CODE": "257609", "ENTITY_TYPE": "TEST", "GENDER": "F", "srccode": "MDMPER", "RECORD_ID": "151110080", "DSRC_ACTION": "A", "ADDR_CITY": "Raleigh", "DRIVERS_LICENSE_NUMBER": "95", "PHONE_NUMBER": "984-881-8384", "NAME_LAST": "OBERMOELLER", "entityid": "151110080", "ADDR_LINE1": "3802 eBllevue RD", "DATA_SOURCE": "TEST"}
 {"SOCIAL_HANDLE": "battlesa", "ADDR_STATE": "LA", "ADDR_POSTAL_CODE": "70706", "NAME_FIRST": "DEVIN", "ENTITY_TYPE": "TEST", "GENDER": "M", "srccode": "MDMPER", "CC_ACCOUNT_NUMBER": "5018608175414044187", "RECORD_ID": "151267101", "DSRC_ACTION": "A", "ADDR_CITY": "Denham Springs", "DRIVERS_LICENSE_NUMBER": "614557601", "PHONE_NUMBER": "318-398-0649", "NAME_LAST": "LOVELL", "entityid": "151267101", "ADDR_LINE1": "8487 Ashley ", "DATA_SOURCE": "TEST"}
 `
+
+func TestMoveImpl_Move(t *testing.T) {
+	type fields struct {
+		FileType                  string
+		InputUrl                  string
+		LogLevel                  string
+		MonitoringPeriodInSeconds int
+		OutputUrl                 string
+		RecordMax                 int
+		RecordMin                 int
+		RecordMonitor             int
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MoveImpl{
+				FileType:                  tt.fields.FileType,
+				InputUrl:                  tt.fields.InputUrl,
+				LogLevel:                  tt.fields.LogLevel,
+				MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
+				OutputUrl:                 tt.fields.OutputUrl,
+				RecordMax:                 tt.fields.RecordMax,
+				RecordMin:                 tt.fields.RecordMin,
+				RecordMonitor:             tt.fields.RecordMonitor,
+			}
+			m.Move(tt.args.ctx)
+		})
+	}
+}
