@@ -17,6 +17,107 @@ import (
 )
 
 // ----------------------------------------------------------------------------
+// test Move method
+// ----------------------------------------------------------------------------
+
+// test the move method
+func TestMoveImpl_Move_table(t *testing.T) {
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
+
+	// serve jsonl file
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
+	idx := strings.LastIndex(filename, "/")
+
+	// create a temporary gzip file of good test data
+	gzipFileName, cleanUpTempGzipFile := createTempGzipDataFile(t, testGoodData)
+	defer cleanUpTempGzipFile()
+
+	// serve gzip file
+	gzipServer, gzipListener, gzipPort := serveResource(t, gzipFileName)
+	go func() {
+		if err := gzipServer.Serve(*gzipListener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
+	gzipIdx := strings.LastIndex(gzipFileName, "/")
+
+	type fields struct {
+		FileType                  string
+		InputUrl                  string
+		LogLevel                  string
+		MonitoringPeriodInSeconds int
+		OutputUrl                 string
+		RecordMax                 int
+		RecordMin                 int
+		RecordMonitor             int
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "test read jsonl file", fields: fields{InputUrl: fmt.Sprintf("file://%s", filename)}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read gzip file", fields: fields{InputUrl: fmt.Sprintf("file://%s", gzipFileName)}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read jsonl file", fields: fields{InputUrl: "file:///bad.jsonl"}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip file", fields: fields{InputUrl: "file:///bad.gz"}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):])}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read gzip resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", gzipPort, gzipFileName[(gzipIdx+1):])}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read jsonl resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.jsonl", port)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort)}, args: args{ctx: context.Background()}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MoveImpl{
+				InputUrl: tt.fields.InputUrl,
+			}
+			if err := m.Move(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	// shutdown servers
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+	if err := gzipServer.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+}
+
+// test the move method
+func TestMoveImpl_Move(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
+
+	m := &MoveImpl{
+		InputUrl: fmt.Sprintf("file://%s", filename),
+	}
+	wantErr := false
+	if err := m.Move(context.Background()); (err != nil) != wantErr {
+		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	}
+
+}
+
+// ----------------------------------------------------------------------------
 // test processJsonl method
 // ----------------------------------------------------------------------------
 
@@ -123,7 +224,7 @@ func TestReadJsonlFile_file_does_not_exist(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestReadGzipFile(t *testing.T) {
 
-	filename, cleanUpTempFile := createTempGzDataFile(t, testGoodData)
+	filename, cleanUpTempFile := createTempGzipDataFile(t, testGoodData)
 	defer cleanUpTempFile()
 
 	recordchan := make(chan queues.Record, 15)
@@ -227,7 +328,7 @@ func TestReadJsonlResource_file_does_not_exist(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestReadGzipResource(t *testing.T) {
 
-	filename, moreCleanUp := createTempGzDataFile(t, testGoodData)
+	filename, moreCleanUp := createTempGzipDataFile(t, testGoodData)
 	defer moreCleanUp()
 	server, listener, port := serveResource(t, filename)
 	go func() {
@@ -284,6 +385,9 @@ func TestReadGzipResource_file_does_not_exist(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 func TestMoveImpl_writeStdout(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
 	defer moreCleanUp()
@@ -385,7 +489,7 @@ func createTempDataFile(t *testing.T, content string, fileextension string) (fil
 }
 
 // create a temp gzipped datafile with the given content
-func createTempGzDataFile(t *testing.T, content string) (filename string, cleanUp func()) {
+func createTempGzipDataFile(t *testing.T, content string) (filename string, cleanUp func()) {
 	t.Helper()
 
 	tmpfile, err := os.CreateTemp("", "test.*.jsonl.gz")
@@ -489,41 +593,3 @@ var testBadData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENTI
 {"SOCIAL_HANDLE": "shuddersv", "DATE_OF_BIRTH": "16/7/1974", "ADDR_STATE": "NC", "ADDR_POSTAL_CODE": "257609", "ENTITY_TYPE": "TEST", "GENDER": "F", "srccode": "MDMPER", "RECORD_ID": "151110080", "DSRC_ACTION": "A", "ADDR_CITY": "Raleigh", "DRIVERS_LICENSE_NUMBER": "95", "PHONE_NUMBER": "984-881-8384", "NAME_LAST": "OBERMOELLER", "entityid": "151110080", "ADDR_LINE1": "3802 eBllevue RD", "DATA_SOURCE": "TEST"}
 {"SOCIAL_HANDLE": "battlesa", "ADDR_STATE": "LA", "ADDR_POSTAL_CODE": "70706", "NAME_FIRST": "DEVIN", "ENTITY_TYPE": "TEST", "GENDER": "M", "srccode": "MDMPER", "CC_ACCOUNT_NUMBER": "5018608175414044187", "RECORD_ID": "151267101", "DSRC_ACTION": "A", "ADDR_CITY": "Denham Springs", "DRIVERS_LICENSE_NUMBER": "614557601", "PHONE_NUMBER": "318-398-0649", "NAME_LAST": "LOVELL", "entityid": "151267101", "ADDR_LINE1": "8487 Ashley ", "DATA_SOURCE": "TEST"}
 `
-
-func TestMoveImpl_Move(t *testing.T) {
-	type fields struct {
-		FileType                  string
-		InputUrl                  string
-		LogLevel                  string
-		MonitoringPeriodInSeconds int
-		OutputUrl                 string
-		RecordMax                 int
-		RecordMin                 int
-		RecordMonitor             int
-	}
-	type args struct {
-		ctx context.Context
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &MoveImpl{
-				FileType:                  tt.fields.FileType,
-				InputUrl:                  tt.fields.InputUrl,
-				LogLevel:                  tt.fields.LogLevel,
-				MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
-				OutputUrl:                 tt.fields.OutputUrl,
-				RecordMax:                 tt.fields.RecordMax,
-				RecordMin:                 tt.fields.RecordMin,
-				RecordMonitor:             tt.fields.RecordMonitor,
-			}
-			m.Move(tt.args.ctx)
-		})
-	}
-}

@@ -48,7 +48,7 @@ type MoveImpl struct {
 var _ Move = (*MoveImpl)(nil)
 
 var (
-	waitGroup sync.WaitGroup
+// waitGroup sync.WaitGroup
 )
 
 // ----------------------------------------------------------------------------
@@ -58,11 +58,17 @@ var (
 // move records from one place to another.  validates each record as they are
 // read and only moves valid records.  typically used to move records from
 // a file to a queue for processing.
-func (m *MoveImpl) Move(ctx context.Context) {
+func (m *MoveImpl) Move(ctx context.Context) (err error) {
+
+	var readErr error = nil
+	var writeErr error = nil
 
 	logBuildInfo()
 	logStats()
 
+	if m.MonitoringPeriodInSeconds <= 0 {
+		m.MonitoringPeriodInSeconds = 60
+	}
 	ticker := time.NewTicker(time.Duration(m.MonitoringPeriodInSeconds) * time.Second)
 	go func() {
 		for {
@@ -75,11 +81,37 @@ func (m *MoveImpl) Move(ctx context.Context) {
 		}
 	}()
 
+	var waitGroup sync.WaitGroup
 	waitGroup.Add(2)
 	recordchan := make(chan queues.Record, 10)
-	go m.read(ctx, recordchan)
-	go m.write(ctx, recordchan)
+
+	go func() {
+		defer waitGroup.Done()
+		readErr = m.read(ctx, recordchan)
+		if readErr != nil {
+			select {
+			case <-recordchan:
+				// channel already closed
+			default:
+				close(recordchan)
+			}
+
+		}
+	}()
+
+	go func() {
+		defer waitGroup.Done()
+		writeErr = m.write(ctx, recordchan)
+	}()
+
 	waitGroup.Wait()
+
+	if readErr != nil {
+		return readErr
+	} else if writeErr != nil {
+		return writeErr
+	}
+	return nil
 }
 
 // ----------------------------------------------------------------------------
@@ -91,30 +123,30 @@ func (m *MoveImpl) Move(ctx context.Context) {
 // ----------------------------------------------------------------------------
 
 // this function implements writing to RabbitMQ
-func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
-
-	defer waitGroup.Done()
+func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) error {
 
 	outputUrl := m.OutputUrl
 	outputUrlLen := len(outputUrl)
 
 	if outputUrlLen == 0 {
 		//assume stdout
-		m.writeStdout(recordchan)
-		return
+		if m.writeStdout(recordchan) {
+			return nil
+		}
+		return errors.New("unable to write to stdout")
 	}
 
 	//This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
 	if len(outputUrl) < 5 {
-		fmt.Printf("ERROR: check the inputURL parameter: %s\n", outputUrl)
-		return
+		fmt.Printf("ERROR: check the outputUrl parameter: %s\n", outputUrl)
+		return errors.New("invalid output URL")
 	}
 
 	fmt.Println("outputUrl: ", outputUrl)
 	u, err := url.Parse(outputUrl)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// m.printURL(u)
 	switch u.Scheme {
@@ -123,10 +155,10 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 	case "file":
 		success := true
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
-			fmt.Println("Reading as a Jsonl file.")
+			fmt.Println("Writing as a Jsonl file.")
 			success = m.writeJsonlFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
-			fmt.Println("Reading as a gzip file.")
+			fmt.Println("Writing as a gzip file.")
 			success = m.writeGzipFile(u.Path, recordchan)
 		} else {
 			// valid := m.validate(u.Path)
@@ -136,7 +168,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 			success = false
 		}
 		if !success {
-			panic("Unable to continue.")
+			errors.New("unable to write to output stream")
 		}
 	case "sqs":
 		//allows for using a dummy URL with just a queue-name
@@ -149,11 +181,13 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) {
 		fmt.Println("Unknow Scheme.  Unable to write to:", outputUrl)
 	}
 	fmt.Println("So long and thanks for all the fish.")
+	return nil
 }
 
 // ----------------------------------------------------------------------------
 
 func (m *MoveImpl) writeStdout(recordchan chan queues.Record) bool {
+
 	_, err := os.Stdout.Stat()
 	if err != nil {
 		fmt.Println("Fatal error opening stdout.", err)
@@ -268,8 +302,6 @@ func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record)
 // it then parses the source and puts the records into the record channel.
 func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) error {
 
-	defer waitGroup.Done()
-
 	inputUrl := m.InputUrl
 	inputUrlLen := len(inputUrl)
 
@@ -289,10 +321,10 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 		return fmt.Errorf("ERROR: check the inputURL parameter: %s", inputUrl)
 	}
 
-	fmt.Println("inputURL: ", inputUrl)
+	fmt.Println("inputUrl: ", inputUrl)
 	u, err := url.Parse(inputUrl)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	//printURL(u)
 	if u.Scheme == "file" {
@@ -441,8 +473,10 @@ func (m *MoveImpl) readGzipFile(gzipFileName string, recordchan chan queues.Reco
 
 // ----------------------------------------------------------------------------
 func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Record) error {
+	fmt.Println("Reading GZ resource", gzipUrl)
 	// #nosec G107
 	response, err := http.Get(gzipUrl)
+	fmt.Println("Response.StatusCode", response.StatusCode)
 	if err != nil {
 		fmt.Println("Fatal error retrieving inputURL.", err)
 		return err
