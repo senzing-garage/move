@@ -20,7 +20,7 @@ import (
 // test Move method
 // ----------------------------------------------------------------------------
 
-// test the move method
+// test the move method using a table of test data
 func TestMoveImpl_Move_table(t *testing.T) {
 
 	// create a temporary jsonl file of good test data
@@ -97,7 +97,7 @@ func TestMoveImpl_Move_table(t *testing.T) {
 	}
 }
 
-// test the move method
+// test the move method, with a single jsonl file
 func TestMoveImpl_Move(t *testing.T) {
 
 	_, cleanUpStdout := mockStdout(t)
@@ -142,11 +142,14 @@ func TestProcessJsonl(t *testing.T) {
 	}
 	mover.processJsonl(filename, file, recordchan)
 
-	count := 0
+	got := 0
 	for range recordchan {
-		count++
+		got++
 	}
-	assert.Equal(t, 10, count)
+	want := 10
+	if got != want {
+		t.Errorf("MoveImpl.processJsonl() error = %v, want %v", err, want)
+	}
 }
 
 // read jsonl file successfully, no record validation errors
