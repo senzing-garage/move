@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/senzing/go-cmdhelping v0.1.4
-	github.com/senzing/go-common v0.2.10
+	github.com/senzing/go-common v0.2.11
 	github.com/senzing/go-queueing v0.0.0-20230802183223-1eb2a0c3f574
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
