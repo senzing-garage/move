@@ -449,7 +449,6 @@ func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Recor
 	// #nosec G107
 	response, err := http.Get(gzipUrl)
 	if err != nil {
-
 		return fmt.Errorf("fatal error retrieving inputUrl %v", err)
 	}
 	if response.StatusCode != 200 {
@@ -458,7 +457,6 @@ func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Recor
 	defer response.Body.Close()
 	reader, err := gzip.NewReader(response.Body)
 	if err != nil {
-
 		return fmt.Errorf("fatal error reading inputUrl %v", err)
 	}
 	defer reader.Close()
@@ -621,26 +619,4 @@ func printCSV(fields ...any) {
 		fmt.Print(field, ",")
 	}
 	fmt.Println("")
-}
-
-// ----------------------------------------------------------------------------
-// record implementation: provides a raw data record implementation
-// ----------------------------------------------------------------------------
-
-// Check at compile time that the implementation adheres to the interface.
-var _ queues.Record = (*szRecord)(nil)
-
-type szRecord struct {
-	body   string
-	id     int
-	source string
-}
-
-func (r *szRecord) GetMessage() string {
-	return r.body
-}
-
-func (r *szRecord) GetMessageId() string {
-	//TODO: meaningful or random MessageId?
-	return fmt.Sprintf("%s-%d", r.source, r.id)
 }
