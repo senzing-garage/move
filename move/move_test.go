@@ -70,12 +70,15 @@ func TestMoveImpl_Move_table(t *testing.T) {
 	}{
 		{name: "test read jsonl file", fields: fields{InputUrl: fmt.Sprintf("file://%s", filename)}, args: args{ctx: context.Background()}, wantErr: false},
 		{name: "test read gzip file", fields: fields{InputUrl: fmt.Sprintf("file://%s", gzipFileName)}, args: args{ctx: context.Background()}, wantErr: false},
-		{name: "test read jsonl file", fields: fields{InputUrl: "file:///bad.jsonl"}, args: args{ctx: context.Background()}, wantErr: true},
-		{name: "test read gzip file", fields: fields{InputUrl: "file:///bad.gz"}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad file name", fields: fields{InputUrl: "file:///bad.jsonl"}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip file, bad file name", fields: fields{InputUrl: "file:///bad.gz"}, args: args{ctx: context.Background()}, wantErr: true},
 		{name: "test read jsonl resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):])}, args: args{ctx: context.Background()}, wantErr: false},
 		{name: "test read gzip resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", gzipPort, gzipFileName[(gzipIdx+1):])}, args: args{ctx: context.Background()}, wantErr: false},
-		{name: "test read jsonl resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.jsonl", port)}, args: args{ctx: context.Background()}, wantErr: true},
-		{name: "test read gzip resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl resource, bad resource name", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.jsonl", port)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip resource, bad resource name", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url schema", fields: fields{InputUrl: fmt.Sprintf("bad://%s", filename)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url", fields: fields{InputUrl: fmt.Sprintf("{}http://%s", filename)}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url", fields: fields{InputUrl: "://"}, args: args{ctx: context.Background()}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -114,7 +117,44 @@ func TestMoveImpl_Move(t *testing.T) {
 	if err := m.Move(context.Background()); (err != nil) != wantErr {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
 	}
+}
 
+// test the move method, with a single unknown file type
+func TestMoveImpl_Move_unknown_file_type(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "txt")
+	defer cleanUpTempFile()
+
+	m := &MoveImpl{
+		InputUrl: fmt.Sprintf("file://%s", filename),
+	}
+	wantErr := true
+	if err := m.Move(context.Background()); (err != nil) != wantErr {
+		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	}
+}
+
+// test the move method, with a single unknown resource type
+func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "txt")
+	defer cleanUpTempFile()
+
+	m := &MoveImpl{
+		InputUrl: fmt.Sprintf("http://%s", filename),
+	}
+	wantErr := true
+	if err := m.Move(context.Background()); (err != nil) != wantErr {
+		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -122,7 +162,7 @@ func TestMoveImpl_Move(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestProcessJsonl(t *testing.T) {
+func TestMoveImpl_ProcessJsonl(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -153,7 +193,7 @@ func TestProcessJsonl(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestProcessJsonl_bad_records(t *testing.T) {
+func TestMoveImpl_ProcessJsonl_bad_records(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testBadData, "jsonl")
 	defer cleanUpTempFile()
@@ -185,7 +225,7 @@ func TestProcessJsonl_bad_records(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestReadJsonlFile(t *testing.T) {
+func TestMoveImpl_ReadJsonlFile(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -211,7 +251,7 @@ func TestReadJsonlFile(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestReadJsonlFile_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_ReadJsonlFile_file_does_not_exist(t *testing.T) {
 
 	filename := "bad.jsonl"
 
@@ -225,7 +265,7 @@ func TestReadJsonlFile_file_does_not_exist(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestReadGzipFile(t *testing.T) {
+func TestMoveImpl_ReadGzipFile(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempGzipDataFile(t, testGoodData)
 	defer cleanUpTempFile()
@@ -251,7 +291,7 @@ func TestReadGzipFile(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestReadGzipFile_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_ReadGzipFile_file_does_not_exist(t *testing.T) {
 
 	filename := "bad.gz"
 
@@ -270,7 +310,7 @@ func TestReadGzipFile_file_does_not_exist(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestReadJsonlResource(t *testing.T) {
+func TestMoveImpl_ReadJsonlResource(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -305,7 +345,7 @@ func TestReadJsonlResource(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestReadJsonlResource_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_ReadJsonlResource_file_does_not_exist(t *testing.T) {
 
 	filename := "/bad.jsonl"
 
@@ -329,7 +369,7 @@ func TestReadJsonlResource_file_does_not_exist(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestReadGzipResource(t *testing.T) {
+func TestMoveImpl_ReadGzipResource(t *testing.T) {
 
 	filename, moreCleanUp := createTempGzipDataFile(t, testGoodData)
 	defer moreCleanUp()
@@ -362,7 +402,7 @@ func TestReadGzipResource(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestReadGzipResource_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_ReadGzipResource_file_does_not_exist(t *testing.T) {
 
 	filename := "/bad.gz"
 
@@ -453,7 +493,7 @@ func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // validate a json file
-// func TestValidate(t *testing.T) {
+// func TestMoveImpl_Validate(t *testing.T) {
 
 // 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 // 	defer cleanUpTempFile()
