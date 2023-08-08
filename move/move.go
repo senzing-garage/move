@@ -129,10 +129,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 	outputUrlLen := len(outputUrl)
 	if outputUrlLen == 0 {
 		//assume stdout
-		if err := m.writeStdout(recordchan); err != nil {
-			return err
-		}
-		return nil
+		return m.writeStdout(recordchan)
 	}
 
 	//This assumes the URL includes a schema and path so, minimally:
@@ -143,7 +140,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 
 	u, err := url.Parse(outputUrl)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid outputUrl: %s %v", outputUrl, err)
 	}
 	// m.printURL(u)
 	switch u.Scheme {
