@@ -614,21 +614,21 @@ func mockStdout(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 }
 
 // capture stderr for testing
-func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
-	t.Helper()
-	origStderr := os.Stderr
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		assert.Fail(t, "couldn't get os Pipe: %v", err)
-	}
-	os.Stderr = writer
+// func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
+// 	t.Helper()
+// 	origStderr := os.Stderr
+// 	reader, writer, err := os.Pipe()
+// 	if err != nil {
+// 		assert.Fail(t, "couldn't get os Pipe: %v", err)
+// 	}
+// 	os.Stderr = writer
 
-	return bufio.NewScanner(reader),
-		func() {
-			//clean-up
-			os.Stderr = origStderr
-		}
-}
+// 	return bufio.NewScanner(reader),
+// 		func() {
+// 			//clean-up
+// 			os.Stderr = origStderr
+// 		}
+// }
 
 var testGoodData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "ANNEX FREDERICK & SHIRLEY STS, P.O. BOX N-4805, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000001"}
 {"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000002", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "SUITE E-2,UNION COURT BUILDING, P.O. BOX N-8188, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000002"}
