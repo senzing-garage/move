@@ -188,7 +188,7 @@ func (m *MoveImpl) writeStdout(recordchan chan queues.Record) error {
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return errors.New("error writing to stdout")
+			return fmt.Errorf("error writing to stdout %v", err)
 		}
 	}
 	err = writer.Flush()
@@ -224,7 +224,7 @@ func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return errors.New("error writing to stdout")
+			return fmt.Errorf("error writing to stdout %v", err)
 		}
 	}
 	err = writer.Flush()
@@ -261,7 +261,7 @@ func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record)
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return errors.New("error writing to stdout")
+			return fmt.Errorf("error writing to stdout %v", err)
 		}
 	}
 	err = writer.Flush()
@@ -284,11 +284,7 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 
 	if inputUrlLen == 0 {
 		//assume stdin
-		success := m.readStdin(recordchan)
-		if !success {
-			return errors.New("unable to read stdin")
-		}
-		return nil
+		return m.readStdin(recordchan)
 	}
 
 	//This assumes the URL includes a schema and path so, minimally:
@@ -326,8 +322,7 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 			return errors.New("unable to process file")
 		}
 	} else {
-		msg := fmt.Sprintf("We don't handle %s input URLs.", u.Scheme)
-		return errors.New(msg)
+		return fmt.Errorf("we don't handle %s input URLs", u.Scheme)
 	}
 }
 
@@ -372,11 +367,10 @@ func (m *MoveImpl) processJsonl(fileName string, reader io.Reader, recordchan ch
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) readStdin(recordchan chan queues.Record) bool {
+func (m *MoveImpl) readStdin(recordchan chan queues.Record) error {
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		fmt.Println("Fatal error opening stdin.", err)
-		return false
+		return fmt.Errorf("fatal error reading stdin %v", err)
 	}
 	//printFileInfo(info)
 
@@ -384,10 +378,9 @@ func (m *MoveImpl) readStdin(recordchan chan queues.Record) bool {
 
 		reader := bufio.NewReader(os.Stdin)
 		m.processJsonl("stdin", reader, recordchan)
-		return true
+		return nil
 	}
-	fmt.Println("Fatal error stdin not piped.")
-	return false
+	return fmt.Errorf("fatal error stdin not piped")
 }
 
 // ----------------------------------------------------------------------------

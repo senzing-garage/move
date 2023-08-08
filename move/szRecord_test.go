@@ -1,6 +1,8 @@
 package move
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_szRecord_GetMessageId(t *testing.T) {
 	type fields struct {
