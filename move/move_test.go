@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/senzing/go-queueing/queues"
 	"github.com/stretchr/testify/assert"
@@ -157,6 +158,37 @@ func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
 	wantErr := true
 	if err := m.Move(context.Background()); (err != nil) != wantErr {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	}
+}
+
+// test the move method, with a single jsonl file
+func TestMoveImpl_Move_wait_for_logStats(t *testing.T) {
+
+	scanner, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
+
+	m := &MoveImpl{
+		InputUrl:                  fmt.Sprintf("file://%s", filename),
+		MonitoringPeriodInSeconds: 1,
+	}
+	wantErr := false
+	if err := m.Move(context.Background()); (err != nil) != wantErr {
+		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	}
+	time.Sleep(2 * time.Second)
+	var got string = ""
+	for i := 0; i < 8; i++ {
+		scanner.Scan()
+		got += scanner.Text()
+		got += "\n"
+	}
+	want := "CPUs"
+	if !strings.Contains(got, want) {
+		t.Errorf("MoveImpl.Move() = %v, want %v", got, want)
 	}
 }
 
