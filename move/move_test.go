@@ -23,6 +23,9 @@ import (
 // test the move method using a table of test data
 func TestMoveImpl_Move_table(t *testing.T) {
 
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -164,6 +167,9 @@ func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_processJsonl(t *testing.T) {
 
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
+
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
 
@@ -194,6 +200,9 @@ func TestMoveImpl_processJsonl(t *testing.T) {
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_processJsonl_bad_records(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testBadData, "jsonl")
 	defer cleanUpTempFile()
@@ -226,6 +235,9 @@ func TestMoveImpl_processJsonl_bad_records(t *testing.T) {
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readJsonlFile(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -266,6 +278,9 @@ func TestMoveImpl_readJsonlFile_file_does_not_exist(t *testing.T) {
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readGzipFile(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, cleanUpTempFile := createTempGzipDataFile(t, testGoodData)
 	defer cleanUpTempFile()
@@ -311,6 +326,9 @@ func TestMoveImpl_readGzipFile_file_does_not_exist(t *testing.T) {
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readJsonlResource(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -370,6 +388,9 @@ func TestMoveImpl_readJsonlResource_file_does_not_exist(t *testing.T) {
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readGzipResource(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, moreCleanUp := createTempGzipDataFile(t, testGoodData)
 	defer moreCleanUp()
@@ -451,13 +472,16 @@ func TestMoveImpl_writeStdout(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	want := true
+	var want error = nil
 	if got := mover.writeStdout(recordchan); got != want {
 		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
 	}
 }
 
 func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
+
+	_, cleanUpStdout := mockStdout(t)
+	defer cleanUpStdout()
 
 	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
 	defer moreCleanUp()
@@ -480,8 +504,8 @@ func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 	}
 	o := os.Stdout
 	os.Stdout = nil
-	want := false
-	if got := mover.writeStdout(recordchan); got != want {
+	var want error = nil
+	if got := mover.writeStdout(recordchan); got == want {
 		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
 	}
 	os.Stdout = o

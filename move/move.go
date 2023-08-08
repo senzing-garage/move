@@ -127,23 +127,20 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 
 	outputUrl := m.OutputUrl
 	outputUrlLen := len(outputUrl)
-
 	if outputUrlLen == 0 {
 		//assume stdout
-		if m.writeStdout(recordchan) {
-			return nil
+		if err := m.writeStdout(recordchan); err != nil {
+			return err
 		}
-		return errors.New("unable to write to stdout")
+		return nil
 	}
 
 	//This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
 	if len(outputUrl) < 5 {
-		fmt.Printf("ERROR: check the outputUrl parameter: %s\n", outputUrl)
-		return errors.New("invalid output URL")
+		return fmt.Errorf("invalid outputUrl: %s", outputUrl)
 	}
 
-	fmt.Println("outputUrl: ", outputUrl)
 	u, err := url.Parse(outputUrl)
 	if err != nil {
 		return err
@@ -153,22 +150,15 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 	case "amqp":
 		rabbitmq.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	case "file":
-		success := true
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
-			fmt.Println("Writing as a Jsonl file.")
-			success = m.writeJsonlFile(u.Path, recordchan)
+			return m.writeJsonlFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
-			fmt.Println("Writing as a gzip file.")
-			success = m.writeGzipFile(u.Path, recordchan)
+			return m.writeGzipFile(u.Path, recordchan)
 		} else {
 			// valid := m.validate(u.Path)
 			// fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
-			fmt.Println("Only able to process JSON-Lines files at this time.")
-			success = false
-		}
-		if !success {
-			errors.New("unable to write to output stream")
+			return errors.New("only able to process JSON-Lines files at this time")
 		}
 	case "sqs":
 		//allows for using a dummy URL with just a queue-name
@@ -178,7 +168,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 		//uses actual AWS SQS URL  TODO: detect sqs/amazonaws url?
 		sqs.StartManagedProducer(ctx, outputUrl, runtime.GOMAXPROCS(0), recordchan)
 	default:
-		fmt.Println("Unknow Scheme.  Unable to write to:", outputUrl)
+		return fmt.Errorf("unknow scheme, unable to write to: %s", outputUrl)
 	}
 	fmt.Println("So long and thanks for all the fish.")
 	return nil
@@ -186,12 +176,11 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) writeStdout(recordchan chan queues.Record) bool {
+func (m *MoveImpl) writeStdout(recordchan chan queues.Record) error {
 
 	_, err := os.Stdout.Stat()
 	if err != nil {
-		fmt.Println("Fatal error opening stdout.", err)
-		return false
+		return fmt.Errorf("fatal error opening stdout %v", err)
 	}
 	// printFileInfo(info)
 
@@ -199,25 +188,22 @@ func (m *MoveImpl) writeStdout(recordchan chan queues.Record) bool {
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			fmt.Println("Error writing to stdout")
-			return false
+			return errors.New("error writing to stdout")
 		}
 	}
 	err = writer.Flush()
 	if err != nil {
-		fmt.Println("Error flushing stdout", err)
-		return false
+		return fmt.Errorf("error flushing stdout %v", err)
 	}
-	return true
+	return nil
 }
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record) bool {
+func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { //file exists
-		fmt.Println("Error output file", fileName, "exists.")
-		return false
+		return fmt.Errorf("error output file %s exists", fileName)
 	}
 	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
@@ -226,13 +212,11 @@ func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record
 		fmt.Printf("Error closing file %s: %v\n", fileName, err)
 	}()
 	if err != nil {
-		fmt.Println("Fatal error opening", fileName, err)
-		return false
+		return fmt.Errorf("fatal error opening %s %v", fileName, err)
 	}
 	_, err = f.Stat()
 	if err != nil {
-		fmt.Println("Fatal error opening", fileName, err)
-		return false
+		return fmt.Errorf("fatal error opening %s %v", fileName, err)
 	}
 	// m.printFileInfo(info)
 
@@ -240,25 +224,22 @@ func (m *MoveImpl) writeJsonlFile(fileName string, recordchan chan queues.Record
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			fmt.Println("Error writing to stdout")
-			return false
+			return errors.New("error writing to stdout")
 		}
 	}
 	err = writer.Flush()
 	if err != nil {
-		fmt.Println("Error flushing", fileName, err)
-		return false
+		return fmt.Errorf("error flushing %s %v", fileName, err)
 	}
-	return true
+	return nil
 }
 
 // ----------------------------------------------------------------------------
 
-func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record) bool {
+func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { //file exists
-		fmt.Println("Error output file", fileName, "exists.")
-		return false
+		return fmt.Errorf("error output file %s exists", fileName)
 	}
 	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
@@ -267,13 +248,11 @@ func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record)
 		fmt.Printf("Error closing file: %v", err)
 	}()
 	if err != nil {
-		fmt.Println("Fatal error opening", fileName, err)
-		return false
+		return fmt.Errorf("fatal error opening %s %v", fileName, err)
 	}
 	_, err = f.Stat()
 	if err != nil {
-		fmt.Println("Fatal error opening", fileName, err)
-		return false
+		return fmt.Errorf("fatal error opening %s %v", fileName, err)
 	}
 	// m.printFileInfo(info)
 	gzfile := gzip.NewWriter(f)
@@ -282,16 +261,14 @@ func (m *MoveImpl) writeGzipFile(fileName string, recordchan chan queues.Record)
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			fmt.Println("Error writing to stdout")
-			return false
+			return errors.New("error writing to stdout")
 		}
 	}
 	err = writer.Flush()
 	if err != nil {
-		fmt.Println("Error flushing", fileName, err)
-		return false
+		return fmt.Errorf("error flushing %s %v", fileName, err)
 	}
-	return true
+	return nil
 }
 
 // ----------------------------------------------------------------------------
@@ -329,10 +306,8 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 	//printURL(u)
 	if u.Scheme == "file" {
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
-			fmt.Println("Reading as a JSONL file.")
 			return m.readJsonlFile(u.Path, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
-			fmt.Println("Reading as a GZ file.")
 			return m.readGzipFile(u.Path, recordchan)
 		} else {
 			// valid := m.validate(u.Path)
@@ -343,10 +318,8 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 		}
 	} else if u.Scheme == "http" || u.Scheme == "https" {
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
-			fmt.Println("Reading as a JSONL resource.")
 			return m.readJsonlResource(inputUrl, recordchan)
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
-			fmt.Println("Reading as a GZ resource.")
 			return m.readGzipResource(inputUrl, recordchan)
 		} else {
 			fmt.Println("If this is a valid JSONL file, please rename with the .jsonl extension or use the file type override (--fileType).")
@@ -473,13 +446,11 @@ func (m *MoveImpl) readGzipFile(gzipFileName string, recordchan chan queues.Reco
 
 // ----------------------------------------------------------------------------
 func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Record) error {
-	fmt.Println("Reading GZ resource", gzipUrl)
 	// #nosec G107
 	response, err := http.Get(gzipUrl)
-	fmt.Println("Response.StatusCode", response.StatusCode)
 	if err != nil {
-		fmt.Println("Fatal error retrieving inputURL.", err)
-		return err
+
+		return fmt.Errorf("fatal error retrieving inputUrl %v", err)
 	}
 	if response.StatusCode != 200 {
 		return fmt.Errorf("unable to retrieve %s, return code %d", gzipUrl, response.StatusCode)
@@ -487,8 +458,8 @@ func (m *MoveImpl) readGzipResource(gzipUrl string, recordchan chan queues.Recor
 	defer response.Body.Close()
 	reader, err := gzip.NewReader(response.Body)
 	if err != nil {
-		fmt.Println("Fatal error reading inputURL.", err)
-		return err
+
+		return fmt.Errorf("fatal error reading inputUrl %v", err)
 	}
 	defer reader.Close()
 
