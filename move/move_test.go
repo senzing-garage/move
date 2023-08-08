@@ -162,7 +162,7 @@ func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ProcessJsonl(t *testing.T) {
+func TestMoveImpl_processJsonl(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -193,7 +193,7 @@ func TestMoveImpl_ProcessJsonl(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ProcessJsonl_bad_records(t *testing.T) {
+func TestMoveImpl_processJsonl_bad_records(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testBadData, "jsonl")
 	defer cleanUpTempFile()
@@ -225,7 +225,7 @@ func TestMoveImpl_ProcessJsonl_bad_records(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ReadJsonlFile(t *testing.T) {
+func TestMoveImpl_readJsonlFile(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -251,7 +251,7 @@ func TestMoveImpl_ReadJsonlFile(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestMoveImpl_ReadJsonlFile_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_readJsonlFile_file_does_not_exist(t *testing.T) {
 
 	filename := "bad.jsonl"
 
@@ -265,7 +265,7 @@ func TestMoveImpl_ReadJsonlFile_file_does_not_exist(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ReadGzipFile(t *testing.T) {
+func TestMoveImpl_readGzipFile(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempGzipDataFile(t, testGoodData)
 	defer cleanUpTempFile()
@@ -291,7 +291,7 @@ func TestMoveImpl_ReadGzipFile(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestMoveImpl_ReadGzipFile_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_readGzipFile_file_does_not_exist(t *testing.T) {
 
 	filename := "bad.gz"
 
@@ -310,7 +310,7 @@ func TestMoveImpl_ReadGzipFile_file_does_not_exist(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ReadJsonlResource(t *testing.T) {
+func TestMoveImpl_readJsonlResource(t *testing.T) {
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -345,7 +345,7 @@ func TestMoveImpl_ReadJsonlResource(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestMoveImpl_ReadJsonlResource_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_readJsonlResource_file_does_not_exist(t *testing.T) {
 
 	filename := "/bad.jsonl"
 
@@ -369,7 +369,7 @@ func TestMoveImpl_ReadJsonlResource_file_does_not_exist(t *testing.T) {
 }
 
 // read jsonl file successfully, no record validation errors
-func TestMoveImpl_ReadGzipResource(t *testing.T) {
+func TestMoveImpl_readGzipResource(t *testing.T) {
 
 	filename, moreCleanUp := createTempGzipDataFile(t, testGoodData)
 	defer moreCleanUp()
@@ -402,7 +402,7 @@ func TestMoveImpl_ReadGzipResource(t *testing.T) {
 }
 
 // attempt to read jsonl file that doesn't exist
-func TestMoveImpl_ReadGzipResource_file_does_not_exist(t *testing.T) {
+func TestMoveImpl_readGzipResource_file_does_not_exist(t *testing.T) {
 
 	filename := "/bad.gz"
 
@@ -493,7 +493,7 @@ func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // validate a json file
-// func TestMoveImpl_Validate(t *testing.T) {
+// func TestMoveImpl_validate(t *testing.T) {
 
 // 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 // 	defer cleanUpTempFile()
