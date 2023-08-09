@@ -76,7 +76,6 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command
 func RunE(_ *cobra.Command, _ []string) error {
-	var err error = nil
 
 	fmt.Println("Run with the following parameters:")
 	for _, key := range viper.AllKeys() {
@@ -100,8 +99,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
 	}
-	mover.Move(ctx)
-	return err
+	return mover.Move(ctx)
 }
 
 // Used in construction of cobra.Command
