@@ -15,7 +15,7 @@ func Test_szRecord_GetMessageId(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{name: "test read jsonl file", fields: fields{body: "", id: 0, source: "file.jsonl"}, want: "file.jsonl-0"},
+		{name: "test read JSONL file", fields: fields{body: "", id: 0, source: "file.jsonl"}, want: "file.jsonl-0"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
