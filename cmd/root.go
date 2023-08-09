@@ -10,8 +10,9 @@ import (
 
 	"github.com/senzing/go-cmdhelping/cmdhelper"
 	"github.com/senzing/go-cmdhelping/option"
-	"github.com/senzing/move/examplepackage"
+	"github.com/senzing/move/move"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -75,13 +76,30 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command
 func RunE(_ *cobra.Command, _ []string) error {
-	var err error = nil
-	ctx := context.Background()
-	examplePackage := &examplepackage.ExamplePackageImpl{
-		Something: "Main says 'Hi!'",
+
+	fmt.Println("Run with the following parameters:")
+	for _, key := range viper.AllKeys() {
+		fmt.Println("  - ", key, " = ", viper.Get(key))
 	}
-	err = examplePackage.SaySomething(ctx)
-	return err
+
+	if viper.GetInt(option.DelayInSeconds.Arg) > 0 {
+		fmt.Println(time.Now(), "Sleep for", viper.GetInt(option.DelayInSeconds.Arg), "seconds to let queues and databases settle down and come up.")
+		time.Sleep(time.Duration(viper.GetInt(option.DelayInSeconds.Arg)) * time.Second)
+	}
+
+	ctx := context.Background()
+
+	mover := &move.MoveImpl{
+		FileType:                  viper.GetString(option.InputFileType.Arg),
+		InputURL:                  viper.GetString(option.InputUrl.Arg),
+		LogLevel:                  viper.GetString(option.LogLevel.Arg),
+		MonitoringPeriodInSeconds: viper.GetInt(option.MonitoringPeriodInSeconds.Arg),
+		OutputURL:                 viper.GetString(option.OutputUrl.Arg),
+		RecordMax:                 viper.GetInt(option.RecordMax.Arg),
+		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
+		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
+	}
+	return mover.Move(ctx)
 }
 
 // Used in construction of cobra.Command
