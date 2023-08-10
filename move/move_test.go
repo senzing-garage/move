@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/senzing/go-logging/logging"
 	"github.com/senzing/go-queueing/queues"
 	"github.com/stretchr/testify/assert"
 )
@@ -56,6 +57,7 @@ func TestMoveImpl_Move_table(t *testing.T) {
 	type fields struct {
 		FileType                  string
 		InputUrl                  string
+		JSONOutput                bool
 		LogLevel                  string
 		MonitoringPeriodInSeconds int
 		OutputUrl                 string
@@ -88,6 +90,91 @@ func TestMoveImpl_Move_table(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MoveImpl{
 				InputURL: tt.fields.InputUrl,
+			}
+			if err := m.Move(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	// shutdown servers
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+	if err := gzipServer.Shutdown(context.Background()); err != nil {
+		t.Error(err)
+	}
+}
+
+// test the move method using a table of test data
+func TestMoveImpl_Move_json_output_table(t *testing.T) {
+
+	_, cleanUpStderr := mockStderr(t)
+	defer cleanUpStderr()
+
+	// create a temporary jsonl file of good test data
+	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
+	defer cleanUpTempFile()
+
+	// serve jsonl file
+	server, listener, port := serveResource(t, filename)
+	go func() {
+		if err := server.Serve(*listener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
+	idx := strings.LastIndex(filename, "/")
+
+	// create a temporary gzip file of good test data
+	gzipFileName, cleanUpTempGZIPFile := createTempGZIPDataFile(t, testGoodData)
+	defer cleanUpTempGZIPFile()
+
+	// serve gzip file
+	gzipServer, gzipListener, gzipPort := serveResource(t, gzipFileName)
+	go func() {
+		if err := gzipServer.Serve(*gzipListener); err != http.ErrServerClosed {
+			log.Fatalf("server.Serve(): %v", err)
+		}
+	}()
+	gzipIdx := strings.LastIndex(gzipFileName, "/")
+
+	type fields struct {
+		FileType                  string
+		InputUrl                  string
+		JSONOutput                bool
+		LogLevel                  string
+		MonitoringPeriodInSeconds int
+		OutputUrl                 string
+		RecordMax                 int
+		RecordMin                 int
+		RecordMonitor             int
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{name: "test read jsonl file", fields: fields{InputUrl: fmt.Sprintf("file://%s", filename), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read gzip file", fields: fields{InputUrl: fmt.Sprintf("file://%s", gzipFileName), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read jsonl file, bad file name", fields: fields{InputUrl: "file:///bad.jsonl", JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip file, bad file name", fields: fields{InputUrl: "file:///bad.gz", JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read gzip resource", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/%s", gzipPort, gzipFileName[(gzipIdx+1):]), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: false},
+		{name: "test read jsonl resource, bad resource name", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.jsonl", port), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read gzip resource, bad resource name", fields: fields{InputUrl: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url schema", fields: fields{InputUrl: fmt.Sprintf("bad://%s", filename), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url", fields: fields{InputUrl: fmt.Sprintf("{}http://%s", filename), JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+		{name: "test read jsonl file, bad url", fields: fields{InputUrl: "://", JSONOutput: true}, args: args{ctx: context.Background()}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MoveImpl{
+				InputURL:   tt.fields.InputUrl,
+				JSONOutput: tt.fields.JSONOutput,
 			}
 			if err := m.Move(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, tt.wantErr)
@@ -544,21 +631,51 @@ func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 
 }
 
-// ----------------------------------------------------------------------------
-// test validate method
-// ----------------------------------------------------------------------------
-
-// validate a json file
-// func TestMoveImpl_validate(t *testing.T) {
-
-// 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
-// 	defer cleanUpTempFile()
-
-// 	mover := &MoveImpl{}
-// 	result := mover.validate(filename)
-
-// 	assert.True(t, result)
-// }
+func TestMoveImpl_SetLogLevel(t *testing.T) {
+	type fields struct {
+		FileType                  string
+		InputURL                  string
+		JSONOutput                bool
+		logger                    logging.LoggingInterface
+		LogLevel                  string
+		MonitoringPeriodInSeconds int
+		OutputURL                 string
+		RecordMax                 int
+		RecordMin                 int
+		RecordMonitor             int
+	}
+	type args struct {
+		ctx          context.Context
+		logLevelName string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"Test SetLogLevel", fields{LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "DEBUG"}, false},
+		{"Test SetLogLevel", fields{LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "bad"}, true},
+		{"Test SetLogLevel", fields{JSONOutput: true, LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "DEBUG"}, false},
+		{"Test SetLogLevel", fields{JSONOutput: true, LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "bad"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &MoveImpl{
+				LogLevel: tt.fields.LogLevel,
+			}
+			if err := v.SetLogLevel(tt.args.ctx, tt.args.logLevelName); (err != nil) != tt.wantErr {
+				t.Errorf("MoveImpl.SetLogLevel() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !tt.wantErr {
+				got := v.logger.GetLogLevel()
+				if got != tt.args.logLevelName {
+					t.Errorf("MoveImpl.SetLogLevel() got = %v, want %v", got, tt.args.logLevelName)
+				}
+			}
+		})
+	}
+}
 
 // ----------------------------------------------------------------------------
 // Helper functions
@@ -646,21 +763,21 @@ func mockStdout(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 }
 
 // capture stderr for testing
-// func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
-// 	t.Helper()
-// 	origStderr := os.Stderr
-// 	reader, writer, err := os.Pipe()
-// 	if err != nil {
-// 		assert.Fail(t, "couldn't get os Pipe: %v", err)
-// 	}
-// 	os.Stderr = writer
+func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
+	t.Helper()
+	origStderr := os.Stderr
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		assert.Fail(t, "couldn't get os Pipe: %v", err)
+	}
+	os.Stderr = writer
 
-// 	return bufio.NewScanner(reader),
-// 		func() {
-// 			//clean-up
-// 			os.Stderr = origStderr
-// 		}
-// }
+	return bufio.NewScanner(reader),
+		func() {
+			//clean-up
+			os.Stderr = origStderr
+		}
+}
 
 var testGoodData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "ANNEX FREDERICK & SHIRLEY STS, P.O. BOX N-4805, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000001"}
 {"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000002", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "SUITE E-2,UNION COURT BUILDING, P.O. BOX N-8188, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000002"}

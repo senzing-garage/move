@@ -511,7 +511,11 @@ func (m *MoveImpl) logBuildInfo() {
 
 // ----------------------------------------------------------------------------
 
+var lock sync.Mutex
+
 func (m *MoveImpl) logStats() {
+	lock.Lock()
+	defer lock.Unlock()
 	cpus := runtime.NumCPU()
 	goRoutines := runtime.NumGoroutine()
 	cgoCalls := runtime.NumCgoCall()
