@@ -35,7 +35,7 @@ type MoveError struct {
 type MoveImpl struct {
 	FileType                  string
 	InputURL                  string
-	JsonOutput                bool
+	JSONOutput                bool
 	logger                    logging.LoggingInterface
 	LogLevel                  string
 	MonitoringPeriodInSeconds int
@@ -469,7 +469,7 @@ func (v *MoveImpl) getLogger() logging.LoggingInterface {
 
 // Log message.
 func (v *MoveImpl) log(messageNumber int, details ...interface{}) {
-	if v.JsonOutput {
+	if v.JSONOutput {
 		v.getLogger().Log(messageNumber, details...)
 	} else {
 		fmt.Println(fmt.Sprintf(IDMessages[messageNumber], details...))
