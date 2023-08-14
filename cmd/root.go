@@ -37,11 +37,11 @@ var ContextVariables = []option.ContextVariable{
 	option.DelayInSeconds,
 	option.EngineModuleName.SetDefault(fmt.Sprintf("move-%d", time.Now().Unix())),
 	option.InputFileType,
-	option.InputUrl,
-	option.JsonOutput,
+	option.InputURL,
+	option.JSONOutput,
 	option.LogLevel,
 	option.MonitoringPeriodInSeconds,
-	option.OutputUrl,
+	option.OutputURL,
 	option.RecordMax,
 	option.RecordMin,
 	option.RecordMonitor,
@@ -76,7 +76,7 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command
 func RunE(_ *cobra.Command, _ []string) error {
-	jsonOutput := viper.GetBool(option.JsonOutput.Arg)
+	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	if !jsonOutput {
 		fmt.Println("Run with the following parameters:")
 		for _, key := range viper.AllKeys() {
@@ -95,11 +95,11 @@ func RunE(_ *cobra.Command, _ []string) error {
 
 	mover := &move.MoveImpl{
 		FileType:                  viper.GetString(option.InputFileType.Arg),
-		InputURL:                  viper.GetString(option.InputUrl.Arg),
-		JSONOutput:                viper.GetBool(option.JsonOutput.Arg),
+		InputURL:                  viper.GetString(option.InputURL.Arg),
+		JSONOutput:                viper.GetBool(option.JSONOutput.Arg),
 		LogLevel:                  viper.GetString(option.LogLevel.Arg),
 		MonitoringPeriodInSeconds: viper.GetInt(option.MonitoringPeriodInSeconds.Arg),
-		OutputURL:                 viper.GetString(option.OutputUrl.Arg),
+		OutputURL:                 viper.GetString(option.OutputURL.Arg),
 		RecordMax:                 viper.GetInt(option.RecordMax.Arg),
 		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
