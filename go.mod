@@ -3,9 +3,10 @@ module github.com/senzing/move
 go 1.20
 
 require (
-	github.com/senzing/go-cmdhelping v0.1.5
+	github.com/senzing/go-cmdhelping v0.1.6-0.20230814160426-afd54992d035
 	github.com/senzing/go-common v0.2.13
-	github.com/senzing/go-queueing v0.1.2
+	github.com/senzing/go-logging v1.3.2
+	github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
@@ -39,7 +40,6 @@ require (
 	github.com/roncewind/go-util v0.0.5 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/senzing/g2-sdk-go v0.6.8 // indirect
-	github.com/senzing/go-logging v1.3.2 // indirect
 	github.com/senzing/go-messaging v1.3.2 // indirect
 	github.com/senzing/go-observing v0.2.7 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

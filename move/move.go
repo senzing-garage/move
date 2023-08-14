@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/senzing/go-common/record"
+	"github.com/senzing/go-logging/logging"
 	"github.com/senzing/go-queueing/queues"
 	"github.com/senzing/go-queueing/queues/rabbitmq"
 	"github.com/senzing/go-queueing/queues/sqs"
@@ -34,6 +35,8 @@ type MoveError struct {
 type MoveImpl struct {
 	FileType                  string
 	InputURL                  string
+	JSONOutput                bool
+	logger                    logging.LoggingInterface
 	LogLevel                  string
 	MonitoringPeriodInSeconds int
 	OutputURL                 string
@@ -63,8 +66,8 @@ func (m *MoveImpl) Move(ctx context.Context) (err error) {
 	var readErr error = nil
 	var writeErr error = nil
 
-	logBuildInfo()
-	logStats()
+	m.logBuildInfo()
+	m.logStats()
 
 	if m.MonitoringPeriodInSeconds <= 0 {
 		m.MonitoringPeriodInSeconds = 60
@@ -76,7 +79,7 @@ func (m *MoveImpl) Move(ctx context.Context) (err error) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				logStats()
+				m.logStats()
 			}
 		}
 	}()
@@ -152,8 +155,6 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			return m.writeGZIPFile(u.Path, recordchan)
 		} else {
-			// valid := m.validate(u.Path)
-			// fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
 			return errors.New("only able to process JSON-Lines files at this time")
 		}
@@ -167,7 +168,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 	default:
 		return fmt.Errorf("unknow scheme, unable to write to: %s", outputURL)
 	}
-	fmt.Println("So long and thanks for all the fish.")
+	m.log(9000)
 	return nil
 }
 
@@ -205,7 +206,7 @@ func (m *MoveImpl) writeJSONLFile(fileName string, recordchan chan queues.Record
 	f, err := os.Create(fileName)
 	defer func() {
 		err := f.Close()
-		fmt.Printf("Error closing file %s: %v\n", fileName, err)
+		m.log(3001, fileName, err)
 	}()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %v", fileName, err)
@@ -240,7 +241,7 @@ func (m *MoveImpl) writeGZIPFile(fileName string, recordchan chan queues.Record)
 	f, err := os.Create(fileName)
 	defer func() {
 		err := f.Close()
-		fmt.Printf("Error closing file: %v", err)
+		m.log(3001, fileName, err)
 	}()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %v", fileName, err)
@@ -285,8 +286,8 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 	//This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
 	if len(inputURL) < 5 {
-		fmt.Printf("ERROR: check the inputURL parameter: %s\n", inputURL)
-		return fmt.Errorf("ERROR: check the inputURL parameter: %s", inputURL)
+		m.log(5000, inputURL)
+		return fmt.Errorf("check the inputURL parameter: %s", inputURL)
 	}
 
 	u, err := url.Parse(inputURL)
@@ -300,10 +301,9 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			return m.readGZIPFile(u.Path, recordchan)
 		} else {
-			// valid := m.validate(u.Path)
-			// fmt.Println("Is valid JSON?", valid)
 			//TODO: process JSON file?
 			close(recordchan)
+			m.log(5011)
 			return errors.New("unable to process file")
 		}
 	} else if u.Scheme == "http" || u.Scheme == "https" {
@@ -312,7 +312,7 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 		} else if strings.HasSuffix(u.Path, "gz") || strings.ToUpper(m.FileType) == "GZ" {
 			return m.readGZIPResource(inputURL, recordchan)
 		} else {
-			fmt.Println("If this is a valid JSONL file, please rename with the .jsonl extension or use the file type override (--fileType).")
+			m.log(5012)
 			return errors.New("unable to process file")
 		}
 	} else {
@@ -325,8 +325,6 @@ func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) erro
 // process records in the JSONL format; reading one record per line from
 // the given reader and placing the records into the record channel
 func (m *MoveImpl) processJSONL(fileName string, reader io.Reader, recordchan chan queues.Record) {
-
-	fmt.Println(time.Now(), "Start file read", fileName)
 
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
@@ -344,19 +342,17 @@ func (m *MoveImpl) processJSONL(fileName string, reader io.Reader, recordchan ch
 			if valid {
 				recordchan <- &szRecord{str, i, fileName}
 			} else {
-				fmt.Println("Line", i, err)
+				m.log(3010, i, err)
 			}
 		}
 		if (m.RecordMonitor > 0) && (i%m.RecordMonitor == 0) {
-			fmt.Println(time.Now(), "Records sent to queue:", i)
+			m.log(9001, i)
 		}
 		if m.RecordMax > 0 && i >= (m.RecordMax) {
 			break
 		}
 	}
 	close(recordchan)
-
-	fmt.Println(time.Now(), "Record channel close for file", fileName)
 }
 
 // ----------------------------------------------------------------------------
@@ -453,126 +449,73 @@ func (m *MoveImpl) readGZIPResource(gzipURL string, recordchan chan queues.Recor
 }
 
 // ----------------------------------------------------------------------------
-
-// validates that a file is valid JSON
-// TODO:  What is a valid JSON file?
-// func (m *MoveImpl) validate(jsonFile string) bool {
-
-// 	var file *os.File = os.Stdin
-
-// 	if jsonFile != "" {
-// 		var err error
-// 		jsonFile = filepath.Clean(jsonFile)
-// 		file, err = os.Open(jsonFile)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
-// 	info, err := file.Stat()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	if info.Size() <= 0 {
-// 		log.Fatal("No file found to validate.")
-// 	}
-// 	m.printFileInfo(info)
-
-// 	bytes := m.getBytes(file)
-// 	if err := file.Close(); err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	valid := json.Valid(bytes)
-// 	return valid
-// }
-
+// Logging --------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-// used for validating a JSON file
-// TODO:  this seems like a naive implementation.  What if the file is very large?
-// func (m *MoveImpl) getBytes(file *os.File) []byte {
+// Get the Logger singleton.
+func (v *MoveImpl) getLogger() logging.LoggingInterface {
+	var err error = nil
+	if v.logger == nil {
+		options := []interface{}{
+			&logging.OptionCallerSkip{Value: 4},
+		}
+		v.logger, err = logging.NewSenzingToolsLogger(ComponentID, IDMessages, options...)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return v.logger
+}
 
-// 	reader := bufio.NewReader(file)
-// 	var output []byte
-
-// 	for {
-// 		input, err := reader.ReadByte()
-// 		if err != nil && err == io.EOF {
-// 			break
-// 		}
-// 		output = append(output, input)
-// 	}
-// 	return output
-// }
-
-// ----------------------------------------------------------------------------
-
-// print basic file information.
-// TODO:  should this info be logged?  DELETE ME?
-// func (m *MoveImpl) printFileInfo(info os.FileInfo) {
-// 	fmt.Println("name: ", info.Name())
-// 	fmt.Println("size: ", info.Size())
-// 	fmt.Println("mode: ", info.Mode())
-// 	fmt.Println("mod time: ", info.ModTime())
-// 	fmt.Println("is dir: ", info.IsDir())
-// 	if info.Mode()&os.ModeDevice == os.ModeDevice {
-// 		fmt.Println("detected device: ", os.ModeDevice)
-// 	}
-// 	if info.Mode()&os.ModeCharDevice == os.ModeCharDevice {
-// 		fmt.Println("detected char device: ", os.ModeCharDevice)
-// 	}
-// 	if info.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
-// 		fmt.Println("detected named pipe: ", os.ModeNamedPipe)
-// 	}
-// }
-
-// ----------------------------------------------------------------------------
-
-// print out basic URL information.
-// TODO:  should this info be logged?  DELETE ME?
-// func (m *MoveImpl) printURL(u *url.URL) {
-
-// 	fmt.Println("\tScheme: ", u.Scheme)
-// 	fmt.Println("\tUser full: ", u.User)
-// 	fmt.Println("\tUser name: ", u.User.Username())
-// 	p, _ := u.User.Password()
-// 	fmt.Println("\tPassword: ", p)
-
-// 	fmt.Println("\tHost full: ", u.Host)
-// 	host, port, _ := net.SplitHostPort(u.Host)
-// 	fmt.Println("\tHost: ", host)
-// 	fmt.Println("\tPort: ", port)
-
-// 	fmt.Println("\tPath: ", u.Path)
-// 	fmt.Println("\tFragment: ", u.Fragment)
-
-// 	fmt.Println("\tQuery string: ", u.RawQuery)
-// 	raw, _ := url.ParseQuery(u.RawQuery)
-// 	fmt.Println("\tParsed query string: ", raw)
-// 	for key, value := range raw {
-// 		fmt.Println("Key:", key, "=>", "Value:", value[0])
-// 	}
-
-// }
-
-// ----------------------------------------------------------------------------
-
-func logBuildInfo() {
-	buildInfo, ok := debug.ReadBuildInfo()
-	fmt.Println("---------------------------------------------------------------")
-	if ok {
-		fmt.Println("GoVersion:", buildInfo.GoVersion)
-		fmt.Println("Path:", buildInfo.Path)
-		fmt.Println("Main.Path:", buildInfo.Main.Path)
-		fmt.Println("Main.Version:", buildInfo.Main.Version)
+// Log message.
+func (v *MoveImpl) log(messageNumber int, details ...interface{}) {
+	if v.JSONOutput {
+		v.getLogger().Log(messageNumber, details...)
 	} else {
-		fmt.Println("Unable to read build info.")
+		fmt.Println(fmt.Sprintf(IDMessages[messageNumber], details...))
+	}
+}
+
+/*
+The SetLogLevel method sets the level of logging.
+
+Input
+  - ctx: A context to control lifecycle.
+  - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
+*/
+func (v *MoveImpl) SetLogLevel(ctx context.Context, logLevelName string) error {
+	var err error = nil
+
+	// Verify value of logLevelName.
+
+	if !logging.IsValidLogLevelName(logLevelName) {
+		return fmt.Errorf("invalid error level: %s", logLevelName)
+	}
+
+	// Set ValidateImpl log level.
+
+	err = v.getLogger().SetLogLevel(logLevelName)
+	return err
+}
+
+// ----------------------------------------------------------------------------
+
+func (m *MoveImpl) logBuildInfo() {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if ok {
+		m.log(9002, buildInfo.GoVersion, buildInfo.Path, buildInfo.Main.Path, buildInfo.Main.Version)
+	} else {
+		m.log(3011)
 	}
 }
 
 // ----------------------------------------------------------------------------
 
-func logStats() {
+var lock sync.Mutex
+
+func (m *MoveImpl) logStats() {
+	lock.Lock()
+	defer lock.Unlock()
 	cpus := runtime.NumCPU()
 	goRoutines := runtime.NumGoroutine()
 	cgoCalls := runtime.NumCgoCall()
@@ -580,30 +523,6 @@ func logStats() {
 	runtime.ReadMemStats(&memStats)
 	var gcStats debug.GCStats
 	debug.ReadGCStats(&gcStats)
+	m.log(9003, cpus, goRoutines, cgoCalls, memStats.NumGC, gcStats.PauseTotal, gcStats.LastGC, memStats.TotalAlloc, memStats.HeapAlloc, memStats.NextGC, memStats.GCSys, memStats.HeapSys, memStats.StackSys, memStats.Sys, memStats.GCCPUFraction)
 
-	// fmt.Println("---------------------------------------------------------------")
-	// fmt.Println("Time:", time.Now())
-	// fmt.Println("CPUs:", cpus)
-	// fmt.Println("Go routines:", goRoutines)
-	// fmt.Println("CGO calls:", cgoCalls)
-	// fmt.Println("Num GC:", memStats.NumGC)
-	// fmt.Println("GCSys:", memStats.GCSys)
-	// fmt.Println("GC pause total:", gcStats.PauseTotal)
-	// fmt.Println("LastGC:", gcStats.LastGC)
-	// fmt.Println("HeapAlloc:", memStats.HeapAlloc)
-	// fmt.Println("NextGC:", memStats.NextGC)
-	// fmt.Println("CPU fraction used by GC:", memStats.GCCPUFraction)
-
-	fmt.Println("---------------------------------------------------------------")
-	printCSV(">>>", "Time", "CPUs", "Go routines", "CGO calls", "Num GC", "GC pause total", "LastGC", "TotalAlloc", "HeapAlloc", "NextGC", "GCSys", "HeapSys", "StackSys", "Sys - total OS bytes", "CPU fraction used by GC")
-	printCSV(">>>", time.Now(), cpus, goRoutines, cgoCalls, memStats.NumGC, gcStats.PauseTotal, gcStats.LastGC, memStats.TotalAlloc, memStats.HeapAlloc, memStats.NextGC, memStats.GCSys, memStats.HeapSys, memStats.StackSys, memStats.Sys, memStats.GCCPUFraction)
-}
-
-// ----------------------------------------------------------------------------
-
-func printCSV(fields ...any) {
-	for _, field := range fields {
-		fmt.Print(field, ",")
-	}
-	fmt.Println("")
 }

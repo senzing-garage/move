@@ -191,6 +191,10 @@ github.com/senzing/g2-sdk-go v0.6.8 h1:wUus50kwp1jTon8D5WyfOPci0zl+CJ9AtZKBViEVa
 github.com/senzing/g2-sdk-go v0.6.8/go.mod h1:jXg6BfhcDqqtG0zTAk/KmH5mBQefAqd/ZV1/3NYFeAs=
 github.com/senzing/go-cmdhelping v0.1.5 h1:U07/+3vIeomn2qES2IAQI3Tg95Wqr4q9Pd2n7RUiJIo=
 github.com/senzing/go-cmdhelping v0.1.5/go.mod h1:nOoJc3KtgaMp9Qodf9dws09tWML76BP46TB1EPgKqV8=
+github.com/senzing/go-cmdhelping v0.1.6-0.20230814160426-afd54992d035 h1:WPIshDEnr5fR22o/LsF9CXCU+5iynQ0gF56qsUgxY/I=
+github.com/senzing/go-cmdhelping v0.1.6-0.20230814160426-afd54992d035/go.mod h1:fBKUdm1Wnn3W3HUtMICYt3lPCrzYfPsoTmkwcx/Wulg=
+github.com/senzing/go-common v0.2.11 h1:egrHPWfw+P6EaGSRFpcDfRN/fSRJqtNpjIFT1MGIFm0=
+github.com/senzing/go-common v0.2.11/go.mod h1:UInzpkEUxtEZQ2P2L33pEnY54/jHcEu4qNSZFq6ooDM=
 github.com/senzing/go-common v0.2.13 h1:dvKmO2by+wA8kK9gcpQRp/9r6zyAyT0idcm6OOf08iU=
 github.com/senzing/go-common v0.2.13/go.mod h1:Dqvq3hZc8KNT7SJKkjJhJ5ZZYbsmZEDIMFT6eFZ+Kt0=
 github.com/senzing/go-logging v1.3.2 h1:V7512RMXi6yiHAzQeCXyQhkEHTtlUNvMuIyaQicDIDE=
@@ -201,6 +205,8 @@ github.com/senzing/go-observing v0.2.7 h1:0HuGGUNWfAKm+a+WoBPHHfz+dcL8SzLqMjWd+U
 github.com/senzing/go-observing v0.2.7/go.mod h1:EPBjqFdyXUjTPoC9C6WQBjUj1sFTp261pL3wlN80jD4=
 github.com/senzing/go-queueing v0.1.2 h1:xawyuBQdDhqGRyQxUNk4rY1XEss30flrRSj8JdXlyyA=
 github.com/senzing/go-queueing v0.1.2/go.mod h1:R84GywrjS/qY4krE5h9U6l4HCfNYDRejOMN6ZIB8t/c=
+github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd h1:TFzq8HihAVFhS3oB+RjxTDCwq8aSkArKPU76a9hrBhk=
+github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd/go.mod h1:R84GywrjS/qY4krE5h9U6l4HCfNYDRejOMN6ZIB8t/c=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spf13/afero v1.9.5 h1:stMpOSZFs//0Lv29HduCmli3GUfpFoF3Y1Q/aXj/wVM=
