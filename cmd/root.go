@@ -76,14 +76,18 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command
 func RunE(_ *cobra.Command, _ []string) error {
-
-	fmt.Println("Run with the following parameters:")
-	for _, key := range viper.AllKeys() {
-		fmt.Println("  - ", key, " = ", viper.Get(key))
+	jsonOutput := viper.GetBool(option.JsonOutput.Arg)
+	if !jsonOutput {
+		fmt.Println("Run with the following parameters:")
+		for _, key := range viper.AllKeys() {
+			fmt.Println("  - ", key, " = ", viper.Get(key))
+		}
 	}
 
 	if viper.GetInt(option.DelayInSeconds.Arg) > 0 {
-		fmt.Println(time.Now(), "Sleep for", viper.GetInt(option.DelayInSeconds.Arg), "seconds to let queues and databases settle down and come up.")
+		if !jsonOutput {
+			fmt.Println(time.Now(), "Sleep for", viper.GetInt(option.DelayInSeconds.Arg), "seconds to let queues and databases settle down and come up.")
+		}
 		time.Sleep(time.Duration(viper.GetInt(option.DelayInSeconds.Arg)) * time.Second)
 	}
 
