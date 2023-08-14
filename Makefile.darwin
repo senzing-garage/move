@@ -1,0 +1,24 @@
+# Makefile extensions for darwin.
+
+# -----------------------------------------------------------------------------
+# Makefile targets supported by all platforms.
+# -----------------------------------------------------------------------------
+
+.PHONY: hello-world
+hello-world:
+	@echo "Hello World, from darwin."
+
+# -----------------------------------------------------------------------------
+# Build
+# -----------------------------------------------------------------------------
+
+.PHONY: build
+build: darwin/amd64
+
+# -----------------------------------------------------------------------------
+# Makefile targets supported only by this platform.
+# -----------------------------------------------------------------------------
+
+.PHONY: only-darwin
+only-darwin:
+	@echo "Only darwin has this Makefile target."
