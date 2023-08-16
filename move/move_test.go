@@ -753,7 +753,7 @@ func mockStdout(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 	origStdout := os.Stdout
 	reader, writer, err := os.Pipe()
 	if err != nil {
-		assert.Fail(t, "couldn't get os Pipe: %v", err)
+		t.Fatalf("couldn't get os Pipe: %v", err)
 	}
 	os.Stdout = writer
 
@@ -770,7 +770,7 @@ func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 	origStderr := os.Stderr
 	reader, writer, err := os.Pipe()
 	if err != nil {
-		assert.Fail(t, "couldn't get os Pipe: %v", err)
+		t.Fatalf("couldn't get os Pipe: %v", err)
 	}
 	os.Stderr = writer
 

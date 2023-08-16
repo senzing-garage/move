@@ -24,8 +24,8 @@ func Test_szRecord_GetMessageId(t *testing.T) {
 				id:     tt.fields.id,
 				source: tt.fields.source,
 			}
-			if got := r.GetMessageId(); got != tt.want {
-				t.Errorf("szRecord.GetMessageId() = %v, want %v", got, tt.want)
+			if got := r.GetMessageID(); got != tt.want {
+				t.Errorf("szRecord.GetMessageID() = %v, want %v", got, tt.want)
 			}
 		})
 	}

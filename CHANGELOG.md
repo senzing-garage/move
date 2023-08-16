@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.0.4] - 2023-08-16
+
+### Changed in 0.0.4
+
+- initial implementation
+
 ## [0.0.3] - 2023-08-14
 
 ### Changed in 0.0.3
@@ -21,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - github.com/senzing/go-logging v1.3.2
   - github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd
   - github.com/spf13/viper v1.16.0
-	
+
 ## [0.0.2] - 2023-08-10
 
 ### Added to 0.0.2

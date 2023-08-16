@@ -6,7 +6,7 @@ require (
 	github.com/senzing/go-cmdhelping v0.1.6-0.20230814160426-afd54992d035
 	github.com/senzing/go-common v0.2.13
 	github.com/senzing/go-logging v1.3.2
-	github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd
+	github.com/senzing/go-queueing v0.1.3
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
