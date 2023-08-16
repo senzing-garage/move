@@ -201,6 +201,8 @@ github.com/senzing/go-observing v0.2.7 h1:0HuGGUNWfAKm+a+WoBPHHfz+dcL8SzLqMjWd+U
 github.com/senzing/go-observing v0.2.7/go.mod h1:EPBjqFdyXUjTPoC9C6WQBjUj1sFTp261pL3wlN80jD4=
 github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd h1:TFzq8HihAVFhS3oB+RjxTDCwq8aSkArKPU76a9hrBhk=
 github.com/senzing/go-queueing v0.1.3-0.20230814145536-98141ca9dacd/go.mod h1:R84GywrjS/qY4krE5h9U6l4HCfNYDRejOMN6ZIB8t/c=
+github.com/senzing/go-queueing v0.1.3-0.20230815210446-ebc83d20e5f8 h1:8qItGEH2fVIigWeMRADJCPkjbo1oeF49tt4CZW5SuZw=
+github.com/senzing/go-queueing v0.1.3-0.20230815210446-ebc83d20e5f8/go.mod h1:CmdMfHcyIOIaeZ62av3uX1VRA3t+8g/U2EKNLkvu8pg=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spf13/afero v1.9.5 h1:stMpOSZFs//0Lv29HduCmli3GUfpFoF3Y1Q/aXj/wVM=

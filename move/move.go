@@ -148,7 +148,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 
 	switch u.Scheme {
 	case "amqp":
-		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, m.LogLevel, m.JSONOutput)
 	case "file":
 		if strings.HasSuffix(u.Path, "jsonl") || strings.ToUpper(m.FileType) == "JSONL" {
 			return m.writeJSONLFile(u.Path, recordchan)
@@ -161,10 +161,10 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 	case "sqs":
 		//allows for using a dummy URL with just a queue-name
 		// eg  sqs://lookup?queue-name=myqueue
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, m.LogLevel, m.JSONOutput)
 	case "https":
 		//uses actual AWS SQS URL  TODO: detect sqs/amazonaws url?
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan)
+		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, m.LogLevel, m.JSONOutput)
 	default:
 		return fmt.Errorf("unknow scheme, unable to write to: %s", outputURL)
 	}

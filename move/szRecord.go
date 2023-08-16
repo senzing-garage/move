@@ -23,7 +23,7 @@ func (r *szRecord) GetMessage() string {
 	return r.body
 }
 
-func (r *szRecord) GetMessageId() string {
+func (r *szRecord) GetMessageID() string {
 	//TODO: meaningful or random MessageId?
 	return fmt.Sprintf("%s-%d", r.source, r.id)
 }
