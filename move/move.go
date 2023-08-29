@@ -168,7 +168,7 @@ func (m *MoveImpl) write(ctx context.Context, recordchan chan queues.Record) err
 	default:
 		return fmt.Errorf("unknow scheme, unable to write to: %s", outputURL)
 	}
-	m.log(9000)
+	m.log(2000)
 	return nil
 }
 
@@ -346,7 +346,7 @@ func (m *MoveImpl) processJSONL(fileName string, reader io.Reader, recordchan ch
 			}
 		}
 		if (m.RecordMonitor > 0) && (i%m.RecordMonitor == 0) {
-			m.log(9001, i)
+			m.log(2001, i)
 		}
 		if m.RecordMax > 0 && i >= (m.RecordMax) {
 			break
@@ -503,7 +503,7 @@ func (v *MoveImpl) SetLogLevel(ctx context.Context, logLevelName string) error {
 func (m *MoveImpl) logBuildInfo() {
 	buildInfo, ok := debug.ReadBuildInfo()
 	if ok {
-		m.log(9002, buildInfo.GoVersion, buildInfo.Path, buildInfo.Main.Path, buildInfo.Main.Version)
+		m.log(2002, buildInfo.GoVersion, buildInfo.Path, buildInfo.Main.Path, buildInfo.Main.Version)
 	} else {
 		m.log(3011)
 	}
@@ -523,6 +523,6 @@ func (m *MoveImpl) logStats() {
 	runtime.ReadMemStats(&memStats)
 	var gcStats debug.GCStats
 	debug.ReadGCStats(&gcStats)
-	m.log(9003, cpus, goRoutines, cgoCalls, memStats.NumGC, gcStats.PauseTotal, gcStats.LastGC, memStats.TotalAlloc, memStats.HeapAlloc, memStats.NextGC, memStats.GCSys, memStats.HeapSys, memStats.StackSys, memStats.Sys, memStats.GCCPUFraction)
+	m.log(2003, cpus, goRoutines, cgoCalls, memStats.NumGC, gcStats.PauseTotal, gcStats.LastGC, memStats.TotalAlloc, memStats.HeapAlloc, memStats.NextGC, memStats.GCSys, memStats.HeapSys, memStats.StackSys, memStats.Sys, memStats.GCCPUFraction)
 
 }
