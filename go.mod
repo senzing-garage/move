@@ -3,8 +3,8 @@ module github.com/senzing/move
 go 1.21
 
 require (
-	github.com/senzing/go-cmdhelping v0.1.7
-	github.com/senzing/go-common v0.2.13
+	github.com/senzing/go-cmdhelping v0.1.8
+	github.com/senzing/go-common v0.2.14
 	github.com/senzing/go-logging v1.3.2
 	github.com/senzing/go-queueing v0.1.3
 	github.com/spf13/cobra v1.7.0
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.21.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.18.36 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.18.37 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.35 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.41 // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
+	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.8.1 // indirect
 	github.com/roncewind/go-util v0.0.5 // indirect
@@ -53,7 +53,7 @@ require (
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230821184602-ccc8af3d0e93 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.57.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
