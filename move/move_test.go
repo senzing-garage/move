@@ -737,7 +737,7 @@ func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, 
 		t.Fatal(err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
-	idx := strings.LastIndex(filename, "/")
+	idx := strings.LastIndex(filename, string(os.PathSeparator))
 	fs := http.FileServer(http.Dir(filename[:idx]))
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
