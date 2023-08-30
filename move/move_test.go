@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/senzing/go-logging/logging"
 	"github.com/senzing/go-queueing/queues"
-	"github.com/stretchr/testify/assert"
 )
 
 // ----------------------------------------------------------------------------
@@ -30,8 +30,8 @@ import (
 // test the move method using a table of test data
 func TestMoveImpl_Move_table(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
@@ -101,6 +101,7 @@ func TestMoveImpl_Move_table(t *testing.T) {
 			}
 		})
 	}
+	w.Close()
 
 	// shutdown servers
 	if err := server.Shutdown(context.Background()); err != nil {
@@ -114,8 +115,8 @@ func TestMoveImpl_Move_table(t *testing.T) {
 // test the move method using a table of test data
 func TestMoveImpl_Move_json_output_table(t *testing.T) {
 
-	_, cleanUpStderr := mockStderr(t)
-	defer cleanUpStderr()
+	_, w, cleanUp := mockStderr(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
@@ -186,6 +187,7 @@ func TestMoveImpl_Move_json_output_table(t *testing.T) {
 			}
 		})
 	}
+	w.Close()
 
 	// shutdown servers
 	if err := server.Shutdown(context.Background()); err != nil {
@@ -199,8 +201,8 @@ func TestMoveImpl_Move_json_output_table(t *testing.T) {
 // test the move method, with a single jsonl file
 func TestMoveImpl_Move(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
@@ -213,13 +215,14 @@ func TestMoveImpl_Move(t *testing.T) {
 	if err := m.Move(context.Background()); (err != nil) != wantErr {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
 	}
+	w.Close()
 }
 
 // test the move method, with a single unknown file type
 func TestMoveImpl_Move_unknown_file_type(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "txt")
@@ -232,13 +235,14 @@ func TestMoveImpl_Move_unknown_file_type(t *testing.T) {
 	if err := m.Move(context.Background()); (err != nil) != wantErr {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
 	}
+	w.Close()
 }
 
 // test the move method, with a single unknown resource type
 func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "txt")
@@ -251,13 +255,14 @@ func TestMoveImpl_Move_unknown_resource_type(t *testing.T) {
 	if err := m.Move(context.Background()); (err != nil) != wantErr {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
 	}
+	w.Close()
 }
 
 // test the move method, with a single jsonl file
 func TestMoveImpl_Move_wait_for_logStats(t *testing.T) {
 
-	scanner, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	r, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
@@ -272,12 +277,11 @@ func TestMoveImpl_Move_wait_for_logStats(t *testing.T) {
 		t.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
 	}
 	time.Sleep(2 * time.Second)
-	var got string = ""
-	for i := 0; i < 8; i++ {
-		scanner.Scan()
-		got += scanner.Text()
-		got += "\n"
-	}
+
+	w.Close()
+	out, _ := io.ReadAll(r)
+	got := string(out)
+
 	want := "CPUs"
 	if !strings.Contains(got, want) {
 		t.Errorf("MoveImpl.Move() = %v, want %v", got, want)
@@ -291,8 +295,8 @@ func TestMoveImpl_Move_wait_for_logStats(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_processJSONL(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -312,6 +316,8 @@ func TestMoveImpl_processJSONL(t *testing.T) {
 	}
 	mover.processJSONL(filename, file, recordchan)
 
+	w.Close()
+
 	got := 0
 	for range recordchan {
 		got++
@@ -325,8 +331,8 @@ func TestMoveImpl_processJSONL(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_processJSONL_bad_records(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testBadData, "jsonl")
 	defer cleanUpTempFile()
@@ -346,11 +352,16 @@ func TestMoveImpl_processJSONL_bad_records(t *testing.T) {
 	}
 	mover.processJSONL(filename, file, recordchan)
 
-	count := 0
+	w.Close()
+
+	got := 0
 	for range recordchan {
-		count++
+		got++
 	}
-	assert.Equal(t, 9, count)
+	want := 9
+	if got != want {
+		t.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, want)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -360,8 +371,8 @@ func TestMoveImpl_processJSONL_bad_records(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readJSONLFile(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -375,15 +386,20 @@ func TestMoveImpl_readJSONLFile(t *testing.T) {
 		RecordMonitor: 5,
 	}
 	err := mover.readJSONLFile(filename, recordchan)
+	w.Close()
+
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("MoveImpl.processJSONL() error = %v, want no error", err)
 	}
 
-	count := 0
+	got := 0
 	for range recordchan {
-		count++
+		got++
 	}
-	assert.Equal(t, 10, count)
+	want := 10
+	if got != want {
+		t.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, want)
+	}
 }
 
 // attempt to read jsonl file that doesn't exist
@@ -397,14 +413,16 @@ func TestMoveImpl_readJSONLFile_file_does_not_exist(t *testing.T) {
 		InputURL: fmt.Sprintf("file://%s", filename),
 	}
 	err := mover.readJSONLFile(filename, recordchan)
-	assert.Error(t, err)
+	if err == nil {
+		t.Errorf("MoveImpl.processJSONL() error = %v, want error", err)
+	}
 }
 
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readGZIPFile(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, cleanUpTempFile := createTempGZIPDataFile(t, testGoodData)
 	defer cleanUpTempFile()
@@ -418,15 +436,21 @@ func TestMoveImpl_readGZIPFile(t *testing.T) {
 		RecordMonitor: 5,
 	}
 	err := mover.readGZIPFile(filename, recordchan)
+
+	w.Close()
+
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("MoveImpl.readGZIPFile() error = %v, want no error", err)
 	}
 
-	count := 0
+	got := 0
 	for range recordchan {
-		count++
+		got++
 	}
-	assert.Equal(t, 10, count)
+	want := 10
+	if got != want {
+		t.Errorf("MoveImpl.readGZIPFile() error = %v, want %v", err, want)
+	}
 }
 
 // attempt to read jsonl file that doesn't exist
@@ -440,8 +464,9 @@ func TestMoveImpl_readGZIPFile_file_does_not_exist(t *testing.T) {
 		InputURL: fmt.Sprintf("file://%s", filename),
 	}
 	err := mover.readGZIPFile(filename, recordchan)
-	assert.Error(t, err)
-
+	if err == nil {
+		t.Errorf("MoveImpl.readGZIPFile() error = %v, want error", err)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -451,8 +476,8 @@ func TestMoveImpl_readGZIPFile_file_does_not_exist(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readJSONLResource(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, cleanUpTempFile := createTempDataFile(t, testGoodData, "jsonl")
 	defer cleanUpTempFile()
@@ -471,19 +496,25 @@ func TestMoveImpl_readJSONLResource(t *testing.T) {
 		RecordMonitor: 5,
 	}
 	err := mover.readJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+
+	w.Close()
+
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("MoveImpl.readJSONLResource() error = %v, want no error", err)
 	}
 
-	count := 0
+	got := 0
 	for range recordchan {
-		count++
+		got++
+	}
+	want := 10
+	if got != want {
+		t.Errorf("MoveImpl.readJSONLResource() error = %v, want %v", err, want)
 	}
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, 10, count)
 }
 
 // attempt to read jsonl file that doesn't exist
@@ -502,7 +533,10 @@ func TestMoveImpl_readJSONLResource_file_does_not_exist(t *testing.T) {
 	idx := strings.LastIndex(filename, "/")
 	mover := &MoveImpl{}
 	err := mover.readJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
-	assert.Error(t, err)
+
+	if err == nil {
+		t.Errorf("MoveImpl.readJSONLResource() error = %v, want error", err)
+	}
 
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Error(err)
@@ -513,8 +547,8 @@ func TestMoveImpl_readJSONLResource_file_does_not_exist(t *testing.T) {
 // read jsonl file successfully, no record validation errors
 func TestMoveImpl_readGZIPResource(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, moreCleanUp := createTempGZIPDataFile(t, testGoodData)
 	defer moreCleanUp()
@@ -532,18 +566,25 @@ func TestMoveImpl_readGZIPResource(t *testing.T) {
 		RecordMonitor: 5,
 	}
 	err := mover.readGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+
+	w.Close()
+
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("MoveImpl.readJSONLResource() error = %v, want no error", err)
 	}
 
-	count := 0
+	got := 0
 	for range recordchan {
-		count++
+		got++
 	}
+	want := 10
+	if got != want {
+		t.Errorf("MoveImpl.readJSONLResource() error = %v, want %v", err, want)
+	}
+
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, 10, count)
 }
 
 // attempt to read jsonl file that doesn't exist
@@ -562,7 +603,11 @@ func TestMoveImpl_readGZIPResource_file_does_not_exist(t *testing.T) {
 
 	mover := &MoveImpl{}
 	err := mover.readGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
-	assert.Error(t, err)
+
+	if err == nil {
+		t.Errorf("MoveImpl.readGZIPResource() error = %v, want error", err)
+	}
+
 	if err := server.Shutdown(context.Background()); err != nil {
 		t.Error(err)
 	}
@@ -574,8 +619,8 @@ func TestMoveImpl_readGZIPResource_file_does_not_exist(t *testing.T) {
 
 func TestMoveImpl_writeStdout(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
 	defer moreCleanUp()
@@ -600,12 +645,13 @@ func TestMoveImpl_writeStdout(t *testing.T) {
 	if got := mover.writeStdout(recordchan); got != want {
 		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
 	}
+	w.Close()
 }
 
 func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 
-	_, cleanUpStdout := mockStdout(t)
-	defer cleanUpStdout()
+	_, w, cleanUp := mockStdout(t)
+	defer cleanUp()
 
 	filename, moreCleanUp := createTempDataFile(t, testGoodData, "jsonl")
 	defer moreCleanUp()
@@ -633,7 +679,7 @@ func TestMoveImpl_writeStdout_no_stdout(t *testing.T) {
 		t.Errorf("MoveImpl.writeStdout() = %v, want %v", got, want)
 	}
 	os.Stdout = o
-
+	w.Close()
 }
 
 func TestMoveImpl_SetLogLevel(t *testing.T) {
@@ -751,7 +797,44 @@ func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, 
 }
 
 // capture stdout for testing
-func mockStdout(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
+func mockStdout(t *testing.T) (reader *os.File, writer *os.File, cleanUp func()) {
+	t.Helper()
+
+	origStdout := os.Stdout
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("couldn't get os Pipe: %v", err)
+	}
+	os.Stdout = writer
+
+	return reader,
+		writer,
+		func() {
+			//clean-up
+			os.Stdout = origStdout
+		}
+}
+
+// capture stderr for testing
+func mockStderr(t *testing.T) (reader *os.File, writer *os.File, cleanUp func()) {
+	t.Helper()
+	origStderr := os.Stderr
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("couldn't get os Pipe: %v", err)
+	}
+	os.Stderr = writer
+
+	return reader,
+		writer,
+		func() {
+			//clean-up
+			os.Stderr = origStderr
+		}
+}
+
+// capture stdout for testing
+func mockStdoutX(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 	t.Helper()
 	origStdout := os.Stdout
 	reader, writer, err := os.Pipe()
@@ -768,7 +851,7 @@ func mockStdout(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 }
 
 // capture stderr for testing
-func mockStderr(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
+func mockStderrX(t *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
 	t.Helper()
 	origStderr := os.Stderr
 	reader, writer, err := os.Pipe()
