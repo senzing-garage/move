@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed in 0.0.6
 
+- Add testing on Windows
 - Update dependencies
   - github.com/senzing/go-cmdhelping v0.1.8
   - github.com/senzing/go-common v0.3.0
