@@ -6,7 +6,7 @@ name: go-test-linux.yaml
 on: [push]
 
 jobs:
-  build:
+  go-test-linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:

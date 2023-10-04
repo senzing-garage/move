@@ -6,7 +6,7 @@ name: go-test-darwin.yaml
 on: [push]
 
 jobs:
-  build:
+  go-test-darwin:
     runs-on: macos-latest
     strategy:
       matrix:
