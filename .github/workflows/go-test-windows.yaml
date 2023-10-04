@@ -6,7 +6,7 @@ name: go-test-windows.yaml
 on: [push]
 
 jobs:
-  build:
+  go-test-windows:
     runs-on: windows-latest
     strategy:
       matrix:
