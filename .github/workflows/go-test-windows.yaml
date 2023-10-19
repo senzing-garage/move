@@ -7,11 +7,12 @@ on: [push]
 
 jobs:
   go-test-windows:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go: ["1.21"]
-    name: Go ${{ matrix.go }} - windows
+        os: [windows-latest]
+    name: "go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
