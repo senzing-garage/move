@@ -15,7 +15,7 @@ This command moves records between files and queues.
 ## Overview
 
 `move` moves records from a file to a queue or another file.  In other words,
-it is a general tool for moving records around.  When it does this is validates
+it is a general tool for moving records around.  When it does this it validates
 each record to ensure that it is valid JSON and contains two necessary key-value
 pairs:  `RECORD_ID` and `DATA_SOURCE`.
 
@@ -25,13 +25,17 @@ local files will need `file://` and remote files `http://` or `https://`. If
 the given file has the `.gz` extension, it will be treated as a compressed file
 JSONL file.  If the file has a `.jsonl` extension it will be treated
 accordingly. If the file has another extension it will be rejected, unless the
-`input-file-type` or `SENZING_TOOLS_INPUT_FILE_TYPE` is set to `JSONL`.
+`input-file-type` or `SENZING_TOOLS_INPUT_FILE_TYPE` is set to `JSONL`.  For example,
+if you have a JSONL formatted file with the URL `file:///tmp/data.json`, it will
+be rejected unless `--input-file-type=JSONL` parameter or the equivalent environment
+variable is set.
 
 Using the command-line parameter `output-url` or the environment variable
 `SENZING_TOOLS_OUTPUT_URL` a queue can also be specified to put records into.
 URLs starting with `amqp://` are interpreted as RabbitMQ queues.  URLs
-starting with `sqs://` are interpreted as SQS queues.  Files can also be
-specified as an output URL.
+starting with `sqs://` are interpreted as SQS queue look-ups.  URLs starting with
+`https://` are interpreted as SQS queue URLs.  See [Parameters](#parameters) for
+additional information on SQS.  Files can also be specified as an output URL.
 
 ## Install
 
@@ -63,7 +67,8 @@ senzing-tools move [flags]
 
     ```console
     senzing-tools move \
-        --input-url https://public-read-access.s3.amazonaws.com/TestDataSets/SenzingTruthSet/truth-set-3.0.0.jsonl
+        --input-url "https://public-read-access.s3.amazonaws.com/TestDataSets/SenzingTruthSet/truth-set-3.0.0.jsonl" \
+        --output-url "amqp://guest:guest@192.168.6.128:5672"
     ```
 
 1. See [Parameters](#parameters) for additional parameters.
@@ -75,6 +80,7 @@ senzing-tools move [flags]
 
     ```console
     export SENZING_TOOLS_INPUT_URL=https://public-read-access.s3.amazonaws.com/TestDataSets/SenzingTruthSet/truth-set-3.0.0.jsonl
+    export SENZING_TOOLS_OUTPUT_URL=amqp://guest:guest@192.168.6.128:5672
     senzing-tools move
     ```
 
@@ -103,6 +109,13 @@ This usage shows how to move a file with a Docker container.
 - **[SENZING_TOOLS_INPUT_URL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_input_url)**
 - **[SENZING_TOOLS_JSON_OUTPUT](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_json_output)**
 - **[SENZING_TOOLS_LOG_LEVEL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_log_level)**
+- **[SENZING_TOOLS_OUTPUT_URL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_output_url)**
+- Notes about the `output-url`:
+    - At present SQS URLs can be formed in two ways
+        1. If your environment is set up such that SQS queue names can be queried, then
+        an `sqs://` URL can be used when formed as such `sqs://lookup?queue-name=myqueue`
+        1. Alternatively, use the direct HTTPS URL of the SQS queue, which is found
+        in the AWS SQS console.
 
 ## References
 
