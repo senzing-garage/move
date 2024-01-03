@@ -17,11 +17,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/senzing/go-common/record"
-	"github.com/senzing/go-logging/logging"
-	"github.com/senzing/go-queueing/queues"
-	"github.com/senzing/go-queueing/queues/rabbitmq"
-	"github.com/senzing/go-queueing/queues/sqs"
+	"github.com/senzing-garage/go-common/record"
+	"github.com/senzing-garage/go-logging/logging"
+	"github.com/senzing-garage/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
+	"github.com/senzing-garage/go-queueing/queues/sqs"
 )
 
 // ----------------------------------------------------------------------------
