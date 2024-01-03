@@ -3,7 +3,7 @@ package move
 import (
 	"fmt"
 
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-queueing/queues"
 )
 
 // ----------------------------------------------------------------------------

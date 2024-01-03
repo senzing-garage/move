@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/senzing/go-cmdhelping/cmdhelper"
-	"github.com/senzing/go-cmdhelping/option"
-	"github.com/senzing/move/move"
+	"github.com/senzing-garage/go-cmdhelping/cmdhelper"
+	"github.com/senzing-garage/go-cmdhelping/option"
+	"github.com/senzing-garage/move/move"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

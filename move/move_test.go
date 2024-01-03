@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/senzing/go-logging/logging"
-	"github.com/senzing/go-queueing/queues"
+	"github.com/senzing-garage/go-logging/logging"
+	"github.com/senzing-garage/go-queueing/queues"
 )
 
 // ----------------------------------------------------------------------------

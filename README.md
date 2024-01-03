@@ -1,16 +1,32 @@
 # move
 
+If you are beginning your journey with
+[Senzing](https://senzing.com/),
+please start with
+[Senzing Quick Start guides](https://docs.senzing.com/quickstart/).
+
+You are in the
+[Senzing Garage](https://github.com/senzing-garage)
+where projects are "tinkered" on.
+Although this GitHub repository may help you understand an approach to using Senzing,
+it's not considered to be "production ready" and is not considered to be part of the Senzing product.
+Heck, it may not even be appropriate for your application of Senzing!
+
 ## Synopsis
 
 `move` is a command in the
-[senzing-tools](https://github.com/Senzing/senzing-tools)
+[senzing-tools](https://github.com/senzing-garage/senzing-tools)
 suite of tools.
 This command moves records between files and queues.
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/senzing/move.svg)](https://pkg.go.dev/github.com/senzing/move)
-[![Go Report Card](https://goreportcard.com/badge/github.com/senzing/move)](https://goreportcard.com/report/github.com/senzing/move)
-[![go-test.yaml](https://github.com/Senzing/move/actions/workflows/go-test.yaml/badge.svg)](https://github.com/Senzing/move/actions/workflows/go-test.yaml)
-[![License](https://img.shields.io/badge/License-Apache2-brightgreen.svg)](https://github.com/Senzing/move/blob/main/LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/senzing-garage/move.svg)](https://pkg.go.dev/github.com/senzing-garage/move)
+[![Go Report Card](https://goreportcard.com/badge/github.com/senzing-garage/move)](https://goreportcard.com/report/github.com/senzing-garage/move)
+[![License](https://img.shields.io/badge/License-Apache2-brightgreen.svg)](https://github.com/senzing-garage/move/blob/main/LICENSE)
+
+[![gosec.yaml](https://github.com/senzing-garage/move/actions/workflows/gosec.yaml/badge.svg)](https://github.com/senzing-garage/move/actions/workflows/gosec.yaml)
+[![go-test-linux.yaml](https://github.com/senzing-garage/move/actions/workflows/go-test-linux.yaml/badge.svg)](https://github.com/senzing-garage/move/actions/workflows/go-test-linux.yaml)
+[![go-test-darwin.yaml](https://github.com/senzing-garage/move/actions/workflows/go-test-darwin.yaml/badge.svg)](https://github.com/senzing-garage/move/actions/workflows/go-test-darwin.yaml)
+[![go-test-windows.yaml](https://github.com/senzing-garage/move/actions/workflows/go-test-windows.yaml/badge.svg)](https://github.com/senzing-garage/move/actions/workflows/go-test-windows.yaml)
 
 ## Overview
 
@@ -40,9 +56,9 @@ additional information on SQS.  Files can also be specified as an output URL.
 ## Install
 
 1. The `move` command is installed with the
-   [senzing-tools](https://github.com/Senzing/senzing-tools)
+   [senzing-tools](https://github.com/senzing-garage/senzing-tools)
    suite of tools.
-   See senzing-tools [install](https://github.com/Senzing/senzing-tools#install).
+   See senzing-tools [install](https://github.com/senzing-garage/senzing-tools#install).
 
 ## Use
 
@@ -105,11 +121,11 @@ This usage shows how to move a file with a Docker container.
 
 ### Parameters
 
-- **[SENZING_TOOLS_INPUT_FILE_TYPE](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_input_file_type)**
-- **[SENZING_TOOLS_INPUT_URL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_input_url)**
-- **[SENZING_TOOLS_JSON_OUTPUT](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_json_output)**
-- **[SENZING_TOOLS_LOG_LEVEL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_log_level)**
-- **[SENZING_TOOLS_OUTPUT_URL](https://github.com/Senzing/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_output_url)**
+- **[SENZING_TOOLS_INPUT_FILE_TYPE](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_input_file_type)**
+- **[SENZING_TOOLS_INPUT_URL](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_input_url)**
+- **[SENZING_TOOLS_JSON_OUTPUT](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_json_output)**
+- **[SENZING_TOOLS_LOG_LEVEL](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_log_level)**
+- **[SENZING_TOOLS_OUTPUT_URL](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_output_url)**
 - Notes about the `output-url`:
     - At present SQS URLs can be formed in two ways
         1. If your environment is set up such that SQS queue names can be queried, then
