@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.1.0] - 2024-01-03
+
+### Changed in 0.1.0
+
+- Renamed module to `github.com/senzing-garage/move`
+- Refactor to [template-go](https://github.com/senzing-garage/template-go)
+- Update dependencies
+  - github.com/senzing-garage/go-cmdhelping v0.2.0
+  - github.com/senzing-garage/go-common v0.4.0
+  - github.com/senzing-garage/go-logging v1.4.0
+  - github.com/senzing-garage/go-queueing v0.2.0
+  - github.com/spf13/cobra v1.8.0
+  - github.com/spf13/viper v1.18.2
+
 ## [0.0.7] - 2023-10-20
 
 ### Changed in 0.0.7
