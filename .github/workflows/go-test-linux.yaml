@@ -2,7 +2,12 @@
 # - https://github.com/marketplace/actions/setup-go-environment
 
 name: go-test-linux.yaml
+
 on: [push]
+
+permissions:
+  contents: read
+
 jobs:
   go-test-linux:
     runs-on: ${{ matrix.os }}

@@ -2,7 +2,12 @@
 # - https://github.com/marketplace/actions/setup-go-environment
 
 name: go-test-darwin.yaml
+
 on: [push]
+
+permissions:
+  contents: read
+
 jobs:
   go-test-darwin:
     runs-on: ${{ matrix.os }}
