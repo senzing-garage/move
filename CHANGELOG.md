@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.1.1] - 2024-01-29
+
+### Changed in 0.1.1
+
+- Update dependencies
+  - github.com/senzing-garage/go-queueing v0.2.1
+
 ## [0.1.0] - 2024-01-03
 
 ### Changed in 0.1.0
