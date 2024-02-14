@@ -1,7 +1,4 @@
-# Based on
-# - https://github.com/marketplace/actions/setup-go-environment
-
-name: go-test-darwin.yaml
+name: go test darwin
 
 on: [push]
 
@@ -10,20 +7,23 @@ permissions:
 
 jobs:
   go-test-darwin:
+    name: "go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go: ["1.21"]
         os: [macos-latest]
-    name: "go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
+
     steps:
-      - name: Checkout repository
+      - name: checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup go
+
+      - name: setup go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
-      - name: Run go test
+
+      - name: run go test
         run: go test -v -p 1 ./...
