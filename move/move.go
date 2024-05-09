@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/senzing-garage/go-common/record"
+	"github.com/senzing-garage/go-helpers/record"
 	"github.com/senzing-garage/go-logging/logging"
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
@@ -274,6 +274,7 @@ func (m *MoveImpl) writeGZIPFile(fileName string, recordchan chan queues.Record)
 // this function attempts to determine the source of records.
 // it then parses the source and puts the records into the record channel.
 func (m *MoveImpl) read(ctx context.Context, recordchan chan queues.Record) error {
+	_ = ctx
 
 	inputURL := m.InputURL
 	inputURLLen := len(inputURL)
