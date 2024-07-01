@@ -683,7 +683,7 @@ func TestMoveImpl_SetLogLevel(t *testing.T) {
 		FileType                  string
 		InputURL                  string
 		JSONOutput                bool
-		logger                    logging.LoggingInterface
+		logger                    logging.Logging
 		LogLevel                  string
 		MonitoringPeriodInSeconds int
 		OutputURL                 string
@@ -708,7 +708,7 @@ func TestMoveImpl_SetLogLevel(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := &MoveImpl{
+			v := &BasicMove{
 				LogLevel: tt.fields.LogLevel,
 			}
 			if err := v.SetLogLevel(tt.args.ctx, tt.args.logLevelName); (err != nil) != tt.wantErr {

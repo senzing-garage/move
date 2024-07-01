@@ -1,8 +1,6 @@
 //go:build !windows
 // +build !windows
 
-//lint:file-ignore U1000 Ignore all unused code, this is a test file.
-
 package move
 
 import (
@@ -19,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/senzing-garage/go-logging/logging"
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/stretchr/testify/require"
 )
@@ -683,7 +680,6 @@ func TestBasicMove_SetLogLevel(test *testing.T) {
 		FileType                  string
 		InputURL                  string
 		JSONOutput                bool
-		logger                    logging.Logging
 		LogLevel                  string
 		MonitoringPeriodInSeconds int
 		OutputURL                 string
@@ -824,40 +820,6 @@ func mockStderr(test *testing.T) (reader *os.File, writer *os.File, cleanUp func
 
 	return reader,
 		writer,
-		func() {
-			// clean-up
-			os.Stderr = origStderr
-		}
-}
-
-// capture stdout for testing
-func mockStdoutX(test *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
-	test.Helper()
-	origStdout := os.Stdout
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		test.Fatalf("couldn't get os Pipe: %v", err)
-	}
-	os.Stdout = writer
-
-	return bufio.NewScanner(reader),
-		func() {
-			// clean-up
-			os.Stdout = origStdout
-		}
-}
-
-// capture stderr for testing
-func mockStderrX(test *testing.T) (buffer *bufio.Scanner, cleanUp func()) {
-	test.Helper()
-	origStderr := os.Stderr
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		test.Fatalf("couldn't get os Pipe: %v", err)
-	}
-	os.Stderr = writer
-
-	return bufio.NewScanner(reader),
 		func() {
 			// clean-up
 			os.Stderr = origStderr
