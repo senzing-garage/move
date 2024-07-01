@@ -1,6 +1,6 @@
 name: go test windows
 
-on: [push]
+on: [pull_request, workflow_dispatch]
 
 permissions:
   contents: read
@@ -25,5 +25,23 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: Set up gotestfmt
+        uses: gotesttools/gotestfmt-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: run go test
-        run: go test -v -p 1 ./...
+        run: |
+          go test -v -p 1 -coverprofile=cover -covermode=atomic -coverpkg=./... ./...
+          cp cover cover.out
+
+      - name: Store coverage file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cover.out
+          path: cover.out
+
+  coverage:
+    name: coverage
+    needs: go-test-windows
+    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2

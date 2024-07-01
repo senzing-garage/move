@@ -1,6 +1,6 @@
 name: go test darwin
 
-on: [push]
+on: [pull_request, workflow_dispatch]
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         go: ["1.21"]
-        os: [macos-latest]
+        os: [macos-13]
 
     steps:
       - name: checkout repository
@@ -26,4 +26,15 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: run go test
-        run: go test -v -p 1 ./...
+        run: go test -v -p 1 -coverprofile=./cover.out -covermode=atomic -coverpkg=./... ./...
+
+      - name: Store coverage file
+        uses: actions/upload-artifact@v4
+        with:
+          name: cover.out
+          path: ./cover.out
+
+  coverage:
+    name: coverage
+    needs: go-test-darwin
+    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2
