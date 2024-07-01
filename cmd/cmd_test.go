@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -44,8 +45,8 @@ func Test_PreRun(test *testing.T) {
 
 func Test_RunE(test *testing.T) {
 	tempDir := test.TempDir()
-	inputFile := fmt.Sprintf("%s/move-cmd-input.jsonl", tempDir)
-	outputFile := fmt.Sprintf("%s/move-cmd-output.jsonl", tempDir)
+	inputFile := filepath.Join(tempDir, "move-cmd-input.jsonl")
+	outputFile := filepath.Join(tempDir, "move-cmd-output.jsonl")
 	err := touchFile(inputFile)
 	require.NoError(test, err)
 	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
@@ -78,9 +79,7 @@ func Test_ExecuteCommand_Help(test *testing.T) {
 // Test that the version is output, this is a bit diffcult given, the
 // number changes, so just make sure it has a couple of '.' chars.
 func TestVersion(t *testing.T) {
-
 	result := Version()
-
 	require.Equal(t, 2, strings.Count(result, "."))
 }
 

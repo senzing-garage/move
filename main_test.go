@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,8 +14,8 @@ import (
  */
 func TestMain(test *testing.T) {
 	tempDir := test.TempDir()
-	inputFile := fmt.Sprintf("%s/move-main-input.jsonl", tempDir)
-	outputFile := fmt.Sprintf("%s/move-main-output.jsonl", tempDir)
+	inputFile := filepath.Join(tempDir, "move-main-input.jsonl")
+	outputFile := filepath.Join(tempDir, "move-main-output.jsonl")
 	err := touchFile(inputFile)
 	require.NoError(test, err)
 	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
