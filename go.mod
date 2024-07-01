@@ -6,7 +6,7 @@ require (
 	github.com/senzing-garage/go-cmdhelping v0.2.2
 	github.com/senzing-garage/go-helpers v0.5.2
 	github.com/senzing-garage/go-logging v1.5.0
-	github.com/senzing-garage/go-queueing v0.3.2-0.20240701144134-89f076b30683
+	github.com/senzing-garage/go-queueing v0.3.2
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
