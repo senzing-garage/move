@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,7 +47,7 @@ func Test_RunE(test *testing.T) {
 	inputFile := fmt.Sprintf("%s/move-cmd-input.jsonl", tempDir)
 	outputFile := fmt.Sprintf("%s/move-cmd-output.jsonl", tempDir)
 	err := touchFile(inputFile)
-	assert.NoError(test, err)
+	require.NoError(test, err)
 	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
 	os.Setenv("SENZING_TOOLS_OUTPUT_URL", fmt.Sprintf("file://%s", outputFile))
 	os.Setenv("SENZING_TOOLS_DELAY_IN_SECONDS", "60")
@@ -82,7 +81,7 @@ func TestVersion(t *testing.T) {
 
 	result := Version()
 
-	assert.Equal(t, 2, strings.Count(result, "."))
+	require.Equal(t, 2, strings.Count(result, "."))
 }
 
 // ----------------------------------------------------------------------------

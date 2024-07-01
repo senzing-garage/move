@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 /*
@@ -16,7 +16,7 @@ func TestMain(test *testing.T) {
 	inputFile := fmt.Sprintf("%s/move-main-input.jsonl", tempDir)
 	outputFile := fmt.Sprintf("%s/move-main-output.jsonl", tempDir)
 	err := touchFile(inputFile)
-	assert.NoError(test, err)
+	require.NoError(test, err)
 	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
 	os.Setenv("SENZING_TOOLS_OUTPUT_URL", fmt.Sprintf("file://%s", outputFile))
 	main()
