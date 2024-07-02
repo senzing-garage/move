@@ -6,7 +6,7 @@ require (
 	github.com/senzing-garage/go-cmdhelping v0.2.2
 	github.com/senzing-garage/go-helpers v0.5.2
 	github.com/senzing-garage/go-logging v1.5.0
-	github.com/senzing-garage/go-queueing v0.3.2
+	github.com/senzing-garage/go-queueing v0.3.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
@@ -42,7 +42,7 @@ require (
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/senzing-garage/go-messaging v1.5.1 // indirect
-	github.com/senzing-garage/sz-sdk-go v0.12.4 // indirect
+	github.com/senzing-garage/sz-sdk-go v0.13.5 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
