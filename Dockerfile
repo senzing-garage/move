@@ -18,8 +18,8 @@ FROM ${IMAGE_FINAL} as senzingapi_runtime
 FROM ${IMAGE_GO_BUILDER} as go_builder
 ENV REFRESHED_AT=2023-10-02
 LABEL Name="senzing/move-builder" \
-  Maintainer="support@senzing.com" \
-  Version="0.1.0"
+      Maintainer="support@senzing.com" \
+      Version="0.1.0"
 
 # Copy local files from the Git repository.
 
@@ -45,7 +45,7 @@ RUN make build
 # Copy binaries to /output.
 
 RUN mkdir -p /output \
-  && cp -R ${GOPATH}/src/move/target/*  /output/
+ && cp -R ${GOPATH}/src/move/target/*  /output/
 
 # -----------------------------------------------------------------------------
 # Stage: final
@@ -54,8 +54,8 @@ RUN mkdir -p /output \
 FROM ${IMAGE_FINAL} as final
 ENV REFRESHED_AT=2023-10-03
 LABEL Name="senzing/move" \
-  Maintainer="support@senzing.com" \
-  Version="0.1.0"
+      Maintainer="support@senzing.com" \
+      Version="0.1.0"
 
 # Copy files from prior stage.
 

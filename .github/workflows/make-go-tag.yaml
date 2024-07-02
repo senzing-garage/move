@@ -12,6 +12,7 @@ jobs:
   make-go-tag:
     name: make a vM.m.P tag
     runs-on: ubuntu-latest
+
     steps:
       - name: checkout repository
         uses: actions/checkout@v4

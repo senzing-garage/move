@@ -95,7 +95,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 
 	ctx := context.Background()
 
-	mover := &move.MoveImpl{
+	mover := &move.BasicMove{
 		FileType:                  viper.GetString(option.InputFileType.Arg),
 		InputURL:                  viper.GetString(option.InputURL.Arg),
 		JSONOutput:                viper.GetBool(option.JSONOutput.Arg),
