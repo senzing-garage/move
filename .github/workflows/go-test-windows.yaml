@@ -44,4 +44,6 @@ jobs:
   coverage:
     name: coverage
     needs: go-test-windows
-    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2
+    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@main
+    with:
+      coverage-config: ./.github/coverage/testcoverage-windows.yaml
