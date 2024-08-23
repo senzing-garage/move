@@ -14,9 +14,6 @@ import (
 // Test public functions
 // ----------------------------------------------------------------------------
 
-/*
- * The unit tests in this file simulate command line invocation.
- */
 func Test_Execute(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "--help"}
@@ -34,6 +31,49 @@ func Test_Execute_docs(test *testing.T) {
 	os.Args = []string{"command-name", "docs"}
 	Execute()
 }
+
+func Test_Execute_help(test *testing.T) {
+	_ = test
+	os.Args = []string{"command-name", "--help"}
+	Execute()
+}
+
+func Test_PreRun(test *testing.T) {
+	_ = test
+	args := []string{"command-name", "--help"}
+	PreRun(RootCmd, args)
+}
+
+func Test_RunE(test *testing.T) {
+	test.Setenv("SENZING_TOOLS_AVOID_SERVING", "true")
+	err := RunE(RootCmd, []string{})
+	require.NoError(test, err)
+}
+
+func Test_RootCmd(test *testing.T) {
+	_ = test
+	err := RootCmd.Execute()
+	require.NoError(test, err)
+	err = RootCmd.RunE(RootCmd, []string{})
+	require.NoError(test, err)
+}
+
+func Test_completionCmd(test *testing.T) {
+	_ = test
+	err := completionCmd.Execute()
+	require.NoError(test, err)
+	err = completionCmd.RunE(completionCmd, []string{})
+	require.NoError(test, err)
+}
+
+func Test_docsCmd(test *testing.T) {
+	_ = test
+	err := docsCmd.Execute()
+	require.NoError(test, err)
+	err = docsCmd.RunE(docsCmd, []string{})
+	require.NoError(test, err)
+}
+
 
 func Test_ExecuteCommand_Help(test *testing.T) {
 	cmd := RootCmd
