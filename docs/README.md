@@ -1,5 +1,8 @@
 # move
 
-Placeholder for [GitHub pages](https://pages.github.com/).
+Placeholder for [GitHub pages].
 
-See [https://hub.senzing.com/move](https://hub.senzing.com/move).
+See [GitHub page].
+
+[GitHub page]: https://garage.senzing.com/move
+[GitHub pages]: https://pages.github.com/

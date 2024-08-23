@@ -1,4 +1,4 @@
-name: go test linux
+name: Go test linux
 
 on: [push]
 
@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   go-test-linux:
-    name: "go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
+    name: "Go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,12 +15,12 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - name: checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: setup go
+      - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
@@ -30,7 +30,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: run go test
+      - name: Run go test
         run: go test -json -v -p 1 -coverprofile=./cover.out -covermode=atomic -coverpkg=./... ./...  2>&1 | tee /tmp/gotest.log | gotestfmt
 
       - name: Store coverage file
@@ -48,7 +48,7 @@ jobs:
           if-no-files-found: error
 
   coverage:
-    name: coverage
+    name: Coverage
     needs: go-test-linux
     uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2
     with:

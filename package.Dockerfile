@@ -2,7 +2,7 @@
 # Stages
 # -----------------------------------------------------------------------------
 
-ARG IMAGE_GO_BUILDER=golang:1.21.4-bullseye
+ARG IMAGE_GO_BUILDER=golang:1.22.3-bullseye
 ARG IMAGE_FPM_BUILDER=dockter/fpm:latest
 ARG IMAGE_FINAL=alpine
 
@@ -10,9 +10,9 @@ ARG IMAGE_FINAL=alpine
 # Stage: go_builder
 # -----------------------------------------------------------------------------
 
-FROM ${IMAGE_GO_BUILDER} as go_builder
-ENV REFRESHED_AT=2023-08-01
-LABEL Name="senzing/move-builder" \
+FROM ${IMAGE_GO_BUILDER} AS go_builder
+ENV REFRESHED_AT=2024-07-01
+LABEL Name="senzing/go-builder" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
 
@@ -27,8 +27,6 @@ ARG GO_PACKAGE_NAME="unknown"
 
 COPY ./rootfs /
 COPY . ${GOPATH}/src/${GO_PACKAGE_NAME}
-
-HEALTHCHECK CMD ["/healthcheck.sh"]
 
 # Build go program.
 
@@ -46,9 +44,9 @@ RUN mkdir -p /output \
 #  - FPM: https://fpm.readthedocs.io/en/latest/cli-reference.html
 # -----------------------------------------------------------------------------
 
-FROM ${IMAGE_FPM_BUILDER} as fpm_builder
-ENV REFRESHED_AT=2023-08-01
-LABEL Name="senzing/move-fpm-builder" \
+FROM ${IMAGE_FPM_BUILDER} AS fpm_builder
+ENV REFRESHED_AT=2024-07-01
+LABEL Name="senzing/fpm-builder" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
 
@@ -90,11 +88,16 @@ RUN fpm \
 # Stage: final
 # -----------------------------------------------------------------------------
 
-FROM ${IMAGE_FINAL} as final
-ENV REFRESHED_AT=2023-08-01
-LABEL Name="senzing/move" \
+FROM ${IMAGE_FINAL} AS final
+ENV REFRESHED_AT=2024-07-01
+LABEL Name="senzing/final-stage" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
+HEALTHCHECK CMD ["/app/healthcheck.sh"]
+
+# Copy files from repository.
+
+COPY ./rootfs /
 
 # Use arguments from prior stage.
 
@@ -102,9 +105,8 @@ ARG PROGRAM_NAME
 
 # Copy files from prior step.
 
-COPY --from=fpm_builder "/output/*"                                  "/output/"
-COPY --from=fpm_builder "/output/linux-amd64/${PROGRAM_NAME}"        "/output/linux-amd64/${PROGRAM_NAME}"
+COPY --from=fpm_builder "/output/*"                           "/output/"
+COPY --from=fpm_builder "/output/linux-amd64/${PROGRAM_NAME}" "/output/linux-amd64/${PROGRAM_NAME}"
 
 USER 1001
-
 CMD ["/bin/bash"]

@@ -1,4 +1,4 @@
-name: go test windows
+name: Go test windows
 
 on: [pull_request, workflow_dispatch]
 
@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   go-test-windows:
-    name: "go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
+    name: "Go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,12 +15,12 @@ jobs:
         os: [windows-latest]
 
     steps:
-      - name: checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: setup go
+      - name: Setup go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
@@ -30,9 +30,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: run go test
+      - name: Run go test
         run: |
-          go test -v -p 1 -coverprofile=cover -covermode=atomic -coverpkg=./... ./...
+          go test -json -v -p 1 -coverprofile=cover -covermode=atomic -coverpkg=./... ./... 2>&1 | tee "C:\Temp\gotest.log" | gotestfmt
           cp cover cover.out
 
       - name: Store coverage file
@@ -41,8 +41,16 @@ jobs:
           name: cover.out
           path: cover.out
 
+      - name: Upload test log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-log
+          path: "C:\\Temp\\gotest.log"
+          if-no-files-found: error
+
   coverage:
-    name: coverage
+    name: Coverage
     needs: go-test-windows
     uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v2
     with:
