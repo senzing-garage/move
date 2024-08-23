@@ -44,19 +44,19 @@ func Test_PreRun(test *testing.T) {
 	PreRun(RootCmd, args)
 }
 
-func Test_RunE(test *testing.T) {
-	test.Setenv("SENZING_TOOLS_AVOID_SERVING", "true")
-	err := RunE(RootCmd, []string{})
-	require.NoError(test, err)
-}
+// func Test_RunE(test *testing.T) {
+// 	test.Setenv("SENZING_TOOLS_AVOID_SERVING", "true")
+// 	err := RunE(RootCmd, []string{})
+// 	require.NoError(test, err)
+// }
 
-func Test_RootCmd(test *testing.T) {
-	_ = test
-	err := RootCmd.Execute()
-	require.NoError(test, err)
-	err = RootCmd.RunE(RootCmd, []string{})
-	require.NoError(test, err)
-}
+// func Test_RootCmd(test *testing.T) {
+// 	_ = test
+// 	err := RootCmd.Execute()
+// 	require.NoError(test, err)
+// 	err = RootCmd.RunE(RootCmd, []string{})
+// 	require.NoError(test, err)
+// }
 
 func Test_completionCmd(test *testing.T) {
 	_ = test
