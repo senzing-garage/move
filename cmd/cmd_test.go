@@ -74,7 +74,6 @@ func Test_docsCmd(test *testing.T) {
 	require.NoError(test, err)
 }
 
-
 func Test_ExecuteCommand_Help(test *testing.T) {
 	cmd := RootCmd
 	outbuf := bytes.NewBufferString("")

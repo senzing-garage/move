@@ -129,7 +129,7 @@ This usage shows how to move a file with a Docker container.
 - **[SENZING_TOOLS_LOG_LEVEL](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_log_level)**
 - **[SENZING_TOOLS_OUTPUT_URL](https://github.com/senzing-garage/knowledge-base/blob/main/lists/environment-variables.md#senzing_tools_output_url)**
 - Notes about the `output-url`:
-    - At present SQS URLs can be formed in two ways
+  - At present SQS URLs can be formed in two ways
         1. If your environment is set up such that SQS queue names can be queried, then
         an `sqs://` URL can be used when formed as such `sqs://lookup?queue-name=myqueue`
         1. Alternatively, use the direct HTTPS URL of the SQS queue, which is found
@@ -143,27 +143,24 @@ This usage shows how to move a file with a Docker container.
 1. [Examples]
 1. [Package reference]
 
-[API documentation]: https://pkg.go.dev/github.com/senzing-garage/template-go
+[API documentation]: https://pkg.go.dev/github.com/senzing-garage/move
 [Development]: docs/development.md
-[DockerHub]: https://hub.docker.com/r/senzing/template-go
 [Errors]: docs/errors.md
 [Examples]: docs/examples.md
-[Go Package library]: https://pkg.go.dev
-[Go Reference Badge]: https://pkg.go.dev/badge/github.com/senzing-garage/template-go.svg
-[Go Report Card Badge]: https://goreportcard.com/badge/github.com/senzing-garage/template-go
-[Go Report Card]: https://goreportcard.com/report/github.com/senzing-garage/template-go
-[go-test-darwin.yaml Badge]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-darwin.yaml/badge.svg
-[go-test-darwin.yaml]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-darwin.yaml
-[go-test-linux.yaml Badge]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-linux.yaml/badge.svg
-[go-test-linux.yaml]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-linux.yaml
-[go-test-windows.yaml Badge]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-windows.yaml/badge.svg
-[go-test-windows.yaml]: https://github.com/senzing-garage/template-go/actions/workflows/go-test-windows.yaml
-[golangci-lint.yaml Badge]: https://github.com/senzing-garage/template-go/actions/workflows/golangci-lint.yaml/badge.svg
-[golangci-lint.yaml]: https://github.com/senzing-garage/template-go/actions/workflows/golangci-lint.yaml
+[Go Reference Badge]: https://pkg.go.dev/badge/github.com/senzing-garage/move.svg
+[Go Report Card Badge]: https://goreportcard.com/badge/github.com/senzing-garage/move
+[Go Report Card]: https://goreportcard.com/report/github.com/senzing-garage/move
+[go-test-darwin.yaml Badge]: https://github.com/senzing-garage/move/actions/workflows/go-test-darwin.yaml/badge.svg
+[go-test-darwin.yaml]: https://github.com/senzing-garage/move/actions/workflows/go-test-darwin.yaml
+[go-test-linux.yaml Badge]: https://github.com/senzing-garage/move/actions/workflows/go-test-linux.yaml/badge.svg
+[go-test-linux.yaml]: https://github.com/senzing-garage/move/actions/workflows/go-test-linux.yaml
+[go-test-windows.yaml Badge]: https://github.com/senzing-garage/move/actions/workflows/go-test-windows.yaml/badge.svg
+[go-test-windows.yaml]: https://github.com/senzing-garage/move/actions/workflows/go-test-windows.yaml
+[golangci-lint.yaml Badge]: https://github.com/senzing-garage/move/actions/workflows/golangci-lint.yaml/badge.svg
+[golangci-lint.yaml]: https://github.com/senzing-garage/move/actions/workflows/golangci-lint.yaml
 [License Badge]: https://img.shields.io/badge/License-Apache2-brightgreen.svg
-[License]: https://github.com/senzing-garage/template-go/blob/main/LICENSE
-[main.go]: main.go
-[Package reference]: https://pkg.go.dev/github.com/senzing-garage/template-go
+[License]: https://github.com/senzing-garage/move/blob/main/LICENSE
+[Package reference]: https://pkg.go.dev/github.com/senzing-garage/move
 [Senzing Garage]: https://github.com/senzing-garage
 [Senzing Quick Start guides]: https://docs.senzing.com/quickstart/
 [Senzing]: https://senzing.com/
