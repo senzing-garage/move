@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/senzing-garage/go-cmdhelping v0.3.0
 	github.com/senzing-garage/go-helpers v0.6.0
-	github.com/senzing-garage/go-logging v1.5.0
+	github.com/senzing-garage/go-logging v1.5.1
 	github.com/senzing-garage/go-queueing v0.4.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
@@ -41,7 +41,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/senzing-garage/go-messaging v1.5.1 // indirect
+	github.com/senzing-garage/go-messaging v1.5.2 // indirect
 	github.com/senzing-garage/sz-sdk-go v0.14.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
