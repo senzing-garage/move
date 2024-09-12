@@ -2,15 +2,15 @@
 # Stages
 # -----------------------------------------------------------------------------
 
-ARG IMAGE_GO_BUILDER=golang:1.22.3-bullseye
-ARG IMAGE_FPM_BUILDER=dockter/fpm:latest
+ARG IMAGE_BUILDER=golang:1.22.3-bullseye
+ARG IMAGE_FPM=dockter/fpm:latest
 ARG IMAGE_FINAL=alpine
 
 # -----------------------------------------------------------------------------
-# Stage: go_builder
+# Stage: builder
 # -----------------------------------------------------------------------------
 
-FROM ${IMAGE_GO_BUILDER} AS go_builder
+FROM ${IMAGE_BUILDER} AS builder
 ENV REFRESHED_AT=2024-07-01
 LABEL Name="senzing/go-builder" \
       Maintainer="support@senzing.com" \
@@ -39,12 +39,12 @@ RUN mkdir -p /output \
  && cp -R ${GOPATH}/src/${GO_PACKAGE_NAME}/target/*  /output/
 
 # -----------------------------------------------------------------------------
-# Stage: fpm_builder
+# Stage: fpm
 #  - Reference: https://github.com/jordansissel/fpm/blob/master/Dockerfile
 #  - FPM: https://fpm.readthedocs.io/en/latest/cli-reference.html
 # -----------------------------------------------------------------------------
 
-FROM ${IMAGE_FPM_BUILDER} AS fpm_builder
+FROM ${IMAGE_FPM} AS fpm
 ENV REFRESHED_AT=2024-07-01
 LABEL Name="senzing/fpm-builder" \
       Maintainer="support@senzing.com" \
@@ -59,7 +59,7 @@ ARG GO_PACKAGE_NAME
 
 # Copy files from prior stage.
 
-COPY --from=go_builder "/output/linux-amd64/*"    "/output/linux-amd64/"
+COPY --from=builder "/output/linux-amd64/*"    "/output/linux-amd64/"
 
 # Create Linux RPM package.
 
@@ -105,8 +105,8 @@ ARG PROGRAM_NAME
 
 # Copy files from prior step.
 
-COPY --from=fpm_builder "/output/*"                           "/output/"
-COPY --from=fpm_builder "/output/linux-amd64/${PROGRAM_NAME}" "/output/linux-amd64/${PROGRAM_NAME}"
+COPY --from=fpm "/output/*"                           "/output/"
+COPY --from=fpm "/output/linux-amd64/${PROGRAM_NAME}" "/output/linux-amd64/${PROGRAM_NAME}"
 
 USER 1001
 CMD ["/bin/bash"]
