@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         go: ["1.21"]
-        os: [macos-13]
+        os: [macos-latest]
 
     steps:
       - name: Checkout repository
