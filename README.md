@@ -143,7 +143,7 @@ This usage shows how to move a file with a Docker container.
 1. [Examples]
 1. [Package reference]
 
-[SDK documentation]: https://pkg.go.dev/github.com/senzing-garage/template-go
+[SDK documentation]: https://pkg.go.dev/github.com/senzing-garage/move
 [Development]: docs/development.md
 [Errors]: docs/errors.md
 [Examples]: docs/examples.md
