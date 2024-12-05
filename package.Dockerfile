@@ -2,7 +2,7 @@
 # Stages
 # -----------------------------------------------------------------------------
 
-ARG IMAGE_BUILDER=golang:1.22.4-bullseye
+ARG IMAGE_BUILDER=golang:1.23.4-bullseye
 ARG IMAGE_FPM=dockter/fpm:latest
 ARG IMAGE_FINAL=alpine
 
