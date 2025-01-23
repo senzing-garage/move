@@ -6,7 +6,7 @@ toolchain go1.23.1
 
 require (
 	github.com/senzing-garage/go-cmdhelping v0.3.1
-	github.com/senzing-garage/go-helpers v0.6.3
+	github.com/senzing-garage/go-helpers v0.6.4
 	github.com/senzing-garage/go-logging v1.5.1
 	github.com/senzing-garage/go-queueing v0.4.2
 	github.com/spf13/cobra v1.8.1
@@ -51,7 +51,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
