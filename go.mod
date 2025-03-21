@@ -6,7 +6,7 @@ toolchain go1.23.2
 
 require (
 	github.com/senzing-garage/go-cmdhelping v0.3.3
-	github.com/senzing-garage/go-helpers v0.6.8
+	github.com/senzing-garage/go-helpers v0.6.9
 	github.com/senzing-garage/go-logging v1.5.1
 	github.com/senzing-garage/go-queueing v0.4.2
 	github.com/spf13/cobra v1.9.1
