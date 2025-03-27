@@ -13,10 +13,6 @@ DYLD_LIBRARY_PATH := $(LD_LIBRARY_PATH)
 # OS specific targets
 # -----------------------------------------------------------------------------
 
-.PHONY: build-osarch-specific
-build-osarch-specific: darwin/amd64
-
-
 .PHONY: clean-osarch-specific
 clean-osarch-specific:
 	@docker rm  --force $(DOCKER_CONTAINER_NAME) 2> /dev/null || true
@@ -42,14 +38,6 @@ coverage-osarch-specific:
 .PHONY: dependencies-for-development-osarch-specific
 dependencies-for-development-osarch-specific:
 	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin latest
-
-
-.PHONY: docker-build-osarch-specific
-docker-build-osarch-specific:
-	@docker build \
-		--tag $(DOCKER_IMAGE_NAME) \
-		--tag $(DOCKER_IMAGE_NAME):$(BUILD_VERSION) \
-		.
 
 
 .PHONY: documentation-osarch-specific
