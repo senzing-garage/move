@@ -7,12 +7,11 @@ permissions:
 
 jobs:
   go-test-windows:
-    name: "Go test with OS: ${{ matrix.os }}; Go: ${{ matrix.go }}"
-    runs-on: ${{ matrix.os }}
+    name: "Go test with OS: windows-latest; Go: ${{ matrix.go }}"
+    runs-on: windows-latest
     strategy:
       matrix:
-        go: ["1.21"]
-        os: [windows-latest]
+        go: ["1.24"]
 
     steps:
       - name: Checkout repository
@@ -20,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup go
+      - name: Setup go ${{ matrix.go }}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}

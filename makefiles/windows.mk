@@ -9,11 +9,6 @@
 # OS specific targets
 # -----------------------------------------------------------------------------
 
-.PHONY: build-osarch-specific
-build-osarch-specific: windows/amd64
-	@mv $(TARGET_DIRECTORY)/windows-amd64/$(PROGRAM_NAME) $(TARGET_DIRECTORY)/windows-amd64/$(PROGRAM_NAME).exe
-
-
 .PHONY: clean-osarch-specific
 clean-osarch-specific:
 	@del /F /S /Q $(GOPATH)/bin/$(PROGRAM_NAME)
