@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   go-test-windows:
-    name: "Go test with Senzing: ${{ matrix.senzingsdk-version }}; OS: windows-latest; Go: ${{ matrix.go }}"
+    name: "Go test with OS: windows-latest; Go: ${{ matrix.go }}"
     runs-on: windows-latest
     strategy:
       matrix:
