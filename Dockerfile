@@ -67,7 +67,7 @@ COPY ./rootfs /
 
 # Copy files from prior stage.
 
-COPY --from=builder /output/linux-amd64/move /app/move
+COPY --from=builder /output/linux/move /app/move
 
 # Run as non-root container
 
