@@ -6,7 +6,7 @@ require (
 	github.com/senzing-garage/go-cmdhelping v0.3.4
 	github.com/senzing-garage/go-helpers v0.6.11
 	github.com/senzing-garage/go-logging v1.5.2
-	github.com/senzing-garage/go-queueing v0.4.2
+	github.com/senzing-garage/go-queueing v0.4.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
@@ -14,18 +14,18 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.29.11 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.64 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.29.14 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.67 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.25.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.29.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.25.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/senzing-garage/go-messaging v1.5.3 // indirect
-	github.com/senzing-garage/sz-sdk-go v0.14.5 // indirect
+	github.com/senzing-garage/sz-sdk-go v0.15.2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
