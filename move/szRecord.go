@@ -24,6 +24,6 @@ func (r *szRecord) GetMessage() string {
 }
 
 func (r *szRecord) GetMessageID() string {
-	//TODO: meaningful or random MessageId?
+	// IMPROVE: meaningful or random MessageId?
 	return fmt.Sprintf("%s-%d", r.source, r.id)
 }

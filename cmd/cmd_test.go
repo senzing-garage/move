@@ -58,19 +58,19 @@ func Test_PreRun(test *testing.T) {
 // 	require.NoError(test, err)
 // }
 
-func Test_completionCmd(test *testing.T) {
+func Test_CompletionCmd(test *testing.T) {
 	_ = test
-	err := completionCmd.Execute()
+	err := CompletionCmd.Execute()
 	require.NoError(test, err)
-	err = completionCmd.RunE(completionCmd, []string{})
+	err = CompletionCmd.RunE(CompletionCmd, []string{})
 	require.NoError(test, err)
 }
 
 func Test_docsCmd(test *testing.T) {
 	_ = test
-	err := docsCmd.Execute()
+	err := DocsCmd.Execute()
 	require.NoError(test, err)
-	err = docsCmd.RunE(docsCmd, []string{})
+	err = DocsCmd.RunE(DocsCmd, []string{})
 	require.NoError(test, err)
 }
 
@@ -114,7 +114,7 @@ func Test_completionAction(test *testing.T) {
 func Test_docsAction_badDir(test *testing.T) {
 	var buffer bytes.Buffer
 	badDir := "/tmp/no/directory/exists"
-	err := docsAction(&buffer, badDir)
+	err := DocsAction(&buffer, badDir)
 	require.Error(test, err)
 }
 
@@ -127,5 +127,6 @@ func touchFile(name string) error {
 	if err != nil {
 		return err
 	}
+
 	return file.Close()
 }

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,8 +16,8 @@ func TestMain(test *testing.T) {
 	outputFile := filepath.Join(tempDir, "move-main-output.jsonl")
 	err := touchFile(inputFile)
 	require.NoError(test, err)
-	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
-	os.Setenv("SENZING_TOOLS_OUTPUT_URL", fmt.Sprintf("file://%s", outputFile))
+	os.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile)
+	os.Setenv("SENZING_TOOLS_OUTPUT_URL", "file://"+outputFile)
 	main()
 }
 
@@ -31,5 +30,6 @@ func touchFile(name string) error {
 	if err != nil {
 		return err
 	}
+
 	return file.Close()
 }

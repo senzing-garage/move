@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/senzing-garage/go-helpers/record"
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/go-logging/logging"
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
@@ -45,6 +45,12 @@ type BasicMove struct {
 	RecordMonitor             int
 }
 
+const (
+	JSONL       = "JSONL"
+	numChannels = 10
+	callerSkip  = 4
+)
+
 // ----------------------------------------------------------------------------
 
 // Check at compile time that the implementation adheres to the interface.
@@ -61,10 +67,13 @@ var (
 // move records from one place to another.  validates each record as they are
 // read and only moves valid records.  typically used to move records from
 // a file to a queue for processing.
-func (move *BasicMove) Move(ctx context.Context) (err error) {
+func (move *BasicMove) Move(ctx context.Context) error {
 
-	var readErr error
-	var writeErr error
+	var (
+		readErr  error
+		writeErr error
+		err      error
+	)
 
 	move.logBuildInfo()
 	move.logStats()
@@ -85,9 +94,9 @@ func (move *BasicMove) Move(ctx context.Context) (err error) {
 	}()
 
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(2)
-	recordchan := make(chan queues.Record, 10)
+	recordchan := make(chan queues.Record, numChannels)
 
+	waitGroup.Add(1)
 	go func() {
 		defer waitGroup.Done()
 		readErr = move.read(ctx, recordchan)
@@ -102,6 +111,7 @@ func (move *BasicMove) Move(ctx context.Context) (err error) {
 		}
 	}()
 
+	waitGroup.Add(1)
 	go func() {
 		defer waitGroup.Done()
 		writeErr = move.write(ctx, recordchan)
@@ -114,7 +124,32 @@ func (move *BasicMove) Move(ctx context.Context) (err error) {
 	} else if writeErr != nil {
 		return writeErr
 	}
-	return nil
+
+	return err
+}
+
+/*
+The SetLogLevel method sets the level of logging.
+
+Input
+  - ctx: A context to control lifecycle.
+  - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
+*/
+func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) error {
+	_ = ctx
+	var err error
+
+	// Verify value of logLevelName.
+
+	if !logging.IsValidLogLevelName(logLevelName) {
+		return wraperror.Errorf(errForPackage, "invalid error level: %s", logLevelName)
+	}
+
+	// Set ValidateImpl log level.
+
+	err = move.getLogger().SetLogLevel(logLevelName)
+
+	return err
 }
 
 // ----------------------------------------------------------------------------
@@ -125,7 +160,7 @@ func (move *BasicMove) Move(ctx context.Context) (err error) {
 // -- Write implementation: writes records in the record channel to the output
 // ----------------------------------------------------------------------------
 
-// this function implements writing to RabbitMQ
+// This function implements writing to RabbitMQ.
 func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record) error {
 
 	outputURL := move.OutputURL
@@ -137,8 +172,8 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 
 	// This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
-	if len(outputURL) < 5 {
-		return fmt.Errorf("invalid outputURL: %s", outputURL)
+	if len(outputURL) < len("s://p") {
+		return wraperror.Errorf(errForPackage, "invalid outputURL: %s", outputURL)
 	}
 
 	u, err := url.Parse(outputURL)
@@ -151,25 +186,26 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	case "file":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == "JSONL":
+		case strings.HasSuffix(u.Path, JSONL), strings.ToUpper(move.FileType) == JSONL:
 			return move.writeJSONLFile(u.Path, recordchan)
 		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
 			return move.writeGZIPFile(u.Path, recordchan)
 		default:
-			//TODO: process JSON file?
-			return errors.New("only able to process JSON-Lines files at this time")
+			// IMPROVE: process JSON file?
+			return wraperror.Errorf(errForPackage, "only able to process JSON-Lines files at this time")
 		}
 	case "sqs":
 		// allows for using a dummy URL with just a queue-name
 		// eg  sqs://lookup?queue-name=myqueue
 		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	case "https":
-		// uses actual AWS SQS URL  TODO: detect sqs/amazonaws url?
+		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
 		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	default:
-		return fmt.Errorf("unknow scheme, unable to write to: %s", outputURL)
+		return wraperror.Errorf(errForPackage, "unknow scheme, unable to write to: %s", outputURL)
 	}
 	move.log(2000)
+
 	return nil
 }
 
@@ -193,6 +229,7 @@ func (move *BasicMove) writeStdout(recordchan chan queues.Record) error {
 	if err != nil {
 		return fmt.Errorf("error flushing stdout %w", err)
 	}
+
 	return nil
 }
 
@@ -201,7 +238,7 @@ func (move *BasicMove) writeStdout(recordchan chan queues.Record) error {
 func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { // file exists
-		return fmt.Errorf("error output file %s exists", fileName)
+		return wraperror.Errorf(errForPackage, "error output file %s exists. error: %w", fileName, err)
 	}
 	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
@@ -228,6 +265,7 @@ func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Re
 	if err != nil {
 		return fmt.Errorf("error flushing %s %w", fileName, err)
 	}
+
 	return nil
 }
 
@@ -236,7 +274,7 @@ func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Re
 func (move *BasicMove) writeGZIPFile(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { // file exists
-		return fmt.Errorf("error output file %s exists", fileName)
+		return wraperror.Errorf(errForPackage, "error output file %s exists", fileName)
 	}
 	fileName = filepath.Clean(fileName)
 	f, err := os.Create(fileName)
@@ -265,6 +303,7 @@ func (move *BasicMove) writeGZIPFile(fileName string, recordchan chan queues.Rec
 	if err != nil {
 		return fmt.Errorf("error flushing %s %w", fileName, err)
 	}
+
 	return nil
 }
 
@@ -287,9 +326,10 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 
 	// This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
-	if len(inputURL) < 5 {
+	if len(inputURL) < len("s://p") {
 		move.log(5000, inputURL)
-		return fmt.Errorf("check the inputURL parameter: %s", inputURL)
+
+		return wraperror.Errorf(errForPackage, "check the inputURL parameter: %s", inputURL)
 	}
 
 	u, err := url.Parse(inputURL)
@@ -300,36 +340,39 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 	switch u.Scheme {
 	case "file":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == "JSONL":
+		case strings.HasSuffix(u.Path, JSONL), strings.ToUpper(move.FileType) == JSONL:
 			return move.readJSONLFile(u.Path, recordchan)
 		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
 			return move.readGZIPFile(u.Path, recordchan)
 		default:
-			//TODO: process JSON file?
+			// IMPROVE
+			// : process JSON file?
 			close(recordchan)
 			move.log(5011)
-			return errors.New("unable to process file")
+
+			return wraperror.Errorf(errForPackage, "unable to process file")
 		}
 	case "http", "https":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == "JSONL":
+		case strings.HasSuffix(u.Path, JSONL), strings.ToUpper(move.FileType) == JSONL:
 			return move.readJSONLResource(inputURL, recordchan)
 		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
 			return move.readGZIPResource(inputURL, recordchan)
 		default:
 			move.log(5012)
-			return errors.New("unable to process file")
+
+			return wraperror.Errorf(errForPackage, "unable to process file")
 		}
 	default:
-		return fmt.Errorf("we don't handle %s input URLs", u.Scheme)
+		return wraperror.Errorf(errForPackage, "we don't handle %s input URLs", u.Scheme)
 	}
 
 }
 
 // ----------------------------------------------------------------------------
 
-// process records in the JSONL format; reading one record per line from
-// the given reader and placing the records into the record channel
+// Process records in the JSONL format; reading one record per line from
+// the given reader and placing the records into the record channel.
 func (move *BasicMove) processJSONL(fileName string, reader io.Reader, recordchan chan queues.Record) {
 
 	scanner := bufio.NewScanner(reader)
@@ -374,14 +417,16 @@ func (move *BasicMove) readStdin(recordchan chan queues.Record) error {
 
 		reader := bufio.NewReader(os.Stdin)
 		move.processJSONL("stdin", reader, recordchan)
+
 		return nil
 	}
-	return fmt.Errorf("fatal error stdin not piped")
+
+	return wraperror.Errorf(errForPackage, "fatal error stdin not piped")
 }
 
 // ----------------------------------------------------------------------------
 
-// opens and reads a JSONL http resource
+// Opens and reads a JSONL http resource.
 func (move *BasicMove) readJSONLResource(jsonURL string, recordchan chan queues.Record) error {
 
 	//nolint:noctx
@@ -389,18 +434,19 @@ func (move *BasicMove) readJSONLResource(jsonURL string, recordchan chan queues.
 	if err != nil {
 		return err
 	}
-	if response.StatusCode != 200 {
-		return fmt.Errorf("unable to retrieve %s, return code %d", jsonURL, response.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		return wraperror.Errorf(errForPackage, "unable to retrieve %s, return code %d", jsonURL, response.StatusCode)
 	}
 	defer response.Body.Close()
 
 	move.processJSONL(jsonURL, response.Body, recordchan)
+
 	return nil
 }
 
 // ----------------------------------------------------------------------------
 
-// opens and reads a JSONL file
+// Opens and reads a JSONL file.
 func (move *BasicMove) readJSONLFile(jsonFile string, recordchan chan queues.Record) error {
 	jsonFile = filepath.Clean(jsonFile)
 	file, err := os.Open(jsonFile)
@@ -410,12 +456,13 @@ func (move *BasicMove) readJSONLFile(jsonFile string, recordchan chan queues.Rec
 	defer file.Close()
 
 	move.processJSONL(jsonFile, file, recordchan)
+
 	return nil
 }
 
 // ----------------------------------------------------------------------------
 
-// opens and reads a JSONL file that has been GZIPped
+// Opens and reads a JSONL file that has been GZIPped.
 func (move *BasicMove) readGZIPFile(gzipFileName string, recordchan chan queues.Record) error {
 	gzipFileName = filepath.Clean(gzipFileName)
 	gzipfile, err := os.Open(gzipFileName)
@@ -431,10 +478,10 @@ func (move *BasicMove) readGZIPFile(gzipFileName string, recordchan chan queues.
 	defer reader.Close()
 
 	move.processJSONL(gzipFileName, reader, recordchan)
+
 	return nil
 }
 
-// ----------------------------------------------------------------------------
 func (move *BasicMove) readGZIPResource(gzipURL string, recordchan chan queues.Record) error {
 
 	//nolint:noctx
@@ -442,8 +489,8 @@ func (move *BasicMove) readGZIPResource(gzipURL string, recordchan chan queues.R
 	if err != nil {
 		return fmt.Errorf("fatal error retrieving inputURL %w", err)
 	}
-	if response.StatusCode != 200 {
-		return fmt.Errorf("unable to retrieve %s, return code %d", gzipURL, response.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		return wraperror.Errorf(errForPackage, "unable to retrieve %s, return code %d", gzipURL, response.StatusCode)
 	}
 	defer response.Body.Close()
 	reader, err := gzip.NewReader(response.Body)
@@ -453,6 +500,7 @@ func (move *BasicMove) readGZIPResource(gzipURL string, recordchan chan queues.R
 	defer reader.Close()
 
 	move.processJSONL(gzipURL, reader, recordchan)
+
 	return nil
 }
 
@@ -465,13 +513,14 @@ func (move *BasicMove) getLogger() logging.Logging {
 	var err error
 	if move.logger == nil {
 		options := []interface{}{
-			&logging.OptionCallerSkip{Value: 4},
+			&logging.OptionCallerSkip{Value: callerSkip},
 		}
 		move.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)
 		if err != nil {
 			panic(err)
 		}
 	}
+
 	return move.logger
 }
 
@@ -480,31 +529,8 @@ func (move *BasicMove) log(messageNumber int, details ...interface{}) {
 	if move.JSONOutput {
 		move.getLogger().Log(messageNumber, details...)
 	} else {
-		fmt.Println(fmt.Sprintf(IDMessages[messageNumber], details...))
+		outputln(fmt.Sprintf(IDMessages[messageNumber], details...))
 	}
-}
-
-/*
-The SetLogLevel method sets the level of logging.
-
-Input
-  - ctx: A context to control lifecycle.
-  - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
-*/
-func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) error {
-	_ = ctx
-	var err error
-
-	// Verify value of logLevelName.
-
-	if !logging.IsValidLogLevelName(logLevelName) {
-		return fmt.Errorf("invalid error level: %s", logLevelName)
-	}
-
-	// Set ValidateImpl log level.
-
-	err = move.getLogger().SetLogLevel(logLevelName)
-	return err
 }
 
 // ----------------------------------------------------------------------------
@@ -532,6 +558,30 @@ func (move *BasicMove) logStats() {
 	runtime.ReadMemStats(&memStats)
 	var gcStats debug.GCStats
 	debug.ReadGCStats(&gcStats)
-	move.log(2003, cpus, goRoutines, cgoCalls, memStats.NumGC, gcStats.PauseTotal, gcStats.LastGC, memStats.TotalAlloc, memStats.HeapAlloc, memStats.NextGC, memStats.GCSys, memStats.HeapSys, memStats.StackSys, memStats.Sys, memStats.GCCPUFraction)
+	move.log(
+		2003,
+		cpus,
+		goRoutines,
+		cgoCalls,
+		memStats.NumGC,
+		gcStats.PauseTotal,
+		gcStats.LastGC,
+		memStats.TotalAlloc,
+		memStats.HeapAlloc,
+		memStats.NextGC,
+		memStats.GCSys,
+		memStats.HeapSys,
+		memStats.StackSys,
+		memStats.Sys,
+		memStats.GCCPUFraction,
+	)
 
+}
+
+// ----------------------------------------------------------------------------
+// Private functions
+// ----------------------------------------------------------------------------
+
+func outputln(message ...any) {
+	fmt.Println(message...) //nolint
 }

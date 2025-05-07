@@ -3,7 +3,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,8 +22,8 @@ func Test_RunE_Linux(test *testing.T) {
 	outputFile := filepath.Join(tempDir, "move-cmd-output.jsonl")
 	err := touchFile(inputFile)
 	require.NoError(test, err)
-	os.Setenv("SENZING_TOOLS_INPUT_URL", fmt.Sprintf("file://%s", inputFile))
-	os.Setenv("SENZING_TOOLS_OUTPUT_URL", fmt.Sprintf("file://%s", outputFile))
+	os.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile)
+	os.Setenv("SENZING_TOOLS_OUTPUT_URL", "file://"+outputFile)
 	os.Setenv("SENZING_TOOLS_DELAY_IN_SECONDS", "60")
 	err = RunE(RootCmd, []string{})
 	require.NoError(test, err)

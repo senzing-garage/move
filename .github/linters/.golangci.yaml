@@ -8,39 +8,40 @@ linters:
     - bidichk
     - bodyclose
     - canonicalheader
-    # - containedctx
+    - containedctx
     - contextcheck
     - copyloopvar
-    # - cyclop
+    - cyclop
     - decorder
-    # - depguard
+    - depguard
     - dogsled
     - dupl
     - dupword
     - durationcheck
-    # - err113
+    - err113
     - errcheck
     - errchkjson
     - errname
     - errorlint
     - exhaustive
-    # - exhaustruct
+    - exhaustruct
     - exptostd
     - fatcontext
-    # - forbidigo
-    # - forcetypeassert
-    # - funlen
+    - forbidigo
+    - forcetypeassert
+    - funcorder
+    - funlen
     - ginkgolinter
     - gocheckcompilerdirectives
-    # - gochecknoglobals
-    # - gochecknoinits
+    - gochecknoglobals
+    - gochecknoinits
     - gochecksumtype
     - gocognit
-    # - goconst
+    - goconst
     - gocritic
     - gocyclo
-    # - godot
-    # - godox
+    - godot
+    - godox
     - goheader
     - gomoddirectives
     - gomodguard
@@ -51,31 +52,31 @@ linters:
     - grouper
     - iface
     - importas
-    # - inamedparam
+    - inamedparam
     - ineffassign
     - interfacebloat
     - intrange
-    # - ireturn
-    # - lll
+    - ireturn
+    - lll
     - loggercheck
     - maintidx
     - makezero
     - mirror
     - misspell
-    # - mnd
+    - mnd
     - musttag
     - nakedret
     - nestif
     - nilerr
     - nilnesserr
     - nilnil
-    # - nlreturn
+    - nlreturn
     - noctx
     - nolintlint
-    # - nonamedreturns
+    - nonamedreturns
     - nosprintfhostport
     # - paralleltest
-    # - perfsprint
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter
@@ -106,6 +107,10 @@ linters:
     # - wrapcheck
     # - wsl
     - zerologlint
+  disable:
+    - gochecknoglobals
+    - gochecknoinits
+    - lll
   exclusions:
     generated: lax
     presets:
@@ -117,6 +122,34 @@ linters:
       - third_party$
       - builtin$
       - examples$
+  settings:
+    cyclop:
+      max-complexity: 13
+    depguard:
+      rules:
+        prevent_unmaintained_packages:
+          list-mode: lax # allow unless explicitely denied
+          allow:
+            - github.com/stretchr/testify/*
+          deny:
+            - pkg: io/ioutil
+              desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
+    exhaustruct:
+      exclude:
+        - '.+/cobra\.Command$'
+        - '.+/move\.BasicMove$'
+        - '.+/move\.fields$'
+        - '.+/http\.Server$'
+    funlen:
+      lines: 130
+    ireturn:
+      allow:
+        - error
+        - logging.Logging
+    mnd:
+      ignored-functions:
+        - '^logger\.Log$'
+        - '^move\.log$'
 
 formatters:
   enable:
@@ -131,3 +164,6 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+  settings:
+    golines:
+      max-len: 120
