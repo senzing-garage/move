@@ -175,9 +175,9 @@ func (move *BasicMove) ProcessJSONL(fileName string, reader io.Reader, recordcha
 
 // Opens and reads a JSONL file.
 func (move *BasicMove) ReadJSONLFile(jsonFile string, recordchan chan queues.Record) error {
-	jsonFile = filepath.Clean(jsonFile)
+	cleanJSONFile := filepath.Clean(jsonFile)
 
-	file, err := os.Open(jsonFile)
+	file, err := os.Open(cleanJSONFile)
 	if err != nil {
 		return wraperror.Errorf(err, "move.ReadJSONLFile.os.Open error: %w", err)
 	}
@@ -193,9 +193,9 @@ func (move *BasicMove) ReadJSONLFile(jsonFile string, recordchan chan queues.Rec
 
 // Opens and reads a JSONL file that has been GZIPped.
 func (move *BasicMove) ReadGZIPFile(gzipFileName string, recordchan chan queues.Record) error {
-	gzipFileName = filepath.Clean(gzipFileName)
+	cleanGzipFileName := filepath.Clean(gzipFileName)
 
-	gzipfile, err := os.Open(gzipFileName)
+	gzipfile, err := os.Open(cleanGzipFileName)
 	if err != nil {
 		return wraperror.Errorf(err, "move.ReadGZIPFile.os.Open error: %w", err)
 	}
