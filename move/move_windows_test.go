@@ -719,14 +719,14 @@ func TestMoveImpl_SetLogLevel(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := &move.BasicMove{
+			mover := &move.BasicMove{
 				LogLevel: tt.fields.LogLevel,
 			}
-			if err := v.SetLogLevel(tt.args.ctx, tt.args.logLevelName); (err != nil) != tt.wantErr {
+			if err := mover.SetLogLevel(tt.args.ctx, tt.args.logLevelName); (err != nil) != tt.wantErr {
 				t.Errorf("MoveImpl.SetLogLevel() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
-				got := v.logger.GetLogLevel()
+				got := mover.Logger().GetLogLevel()
 				if got != tt.args.logLevelName {
 					t.Errorf("MoveImpl.SetLogLevel() got = %v, want %v", got, tt.args.logLevelName)
 				}
