@@ -71,8 +71,8 @@ github.com/senzing-garage/go-messaging v1.5.3 h1:bH+LtEgNJj/PRbg1VMK9/Gk457Cdfdc
 github.com/senzing-garage/go-messaging v1.5.3/go.mod h1:7qvSNAVyWcSIcsnDAm8obCxHItljN295O3fX4bOgfp0=
 github.com/senzing-garage/go-queueing v0.4.3 h1:sY3q45m4jOuE+0P4TT9gBr3cAdQghugKTotmk2ClwG4=
 github.com/senzing-garage/go-queueing v0.4.3/go.mod h1:HLvsY+/7FTUj86HOwanLTV2vxwXEjipZE8AaqjVKw/4=
-github.com/senzing-garage/sz-sdk-go v0.15.2 h1:fz/wRjhu+XMaNmD8dnmHtGBHM9qF64g+9bBl01Xcr9U=
-github.com/senzing-garage/sz-sdk-go v0.15.2/go.mod h1:RPZG4W1AgWxjpA1ogJ0r4TYX0ITx5YhWSIRqEXkdrrg=
+github.com/senzing-garage/sz-sdk-go v0.15.3 h1:fq5eZgEooZaQZCv6Knt1zkpo0C9QU1CLS9LCOkRanqo=
+github.com/senzing-garage/sz-sdk-go v0.15.3/go.mod h1:RPZG4W1AgWxjpA1ogJ0r4TYX0ITx5YhWSIRqEXkdrrg=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spf13/afero v1.14.0 h1:9tH6MapGnn/j0eb0yIXiLjERO8RB6xIVZRDCX7PtqWA=

@@ -31,11 +31,11 @@ func TestBasicMove_Move_table(test *testing.T) {
 	ctx := test.Context()
 
 	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+	test.Cleanup(cleanUp)
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
-	defer cleanUpTempFile()
+	test.Cleanup(cleanUpTempFile)
 
 	// serve jsonl file
 	server, listener, port := serveResource(test, filename)
@@ -49,7 +49,7 @@ func TestBasicMove_Move_table(test *testing.T) {
 
 	// create a temporary gzip file of good test data
 	gzipFileName, cleanUpTempGZIPFile := createTempGZIPDataFile(test, testGoodData)
-	defer cleanUpTempGZIPFile()
+	test.Cleanup(cleanUpTempGZIPFile)
 
 	// serve gzip file
 	gzipServer, gzipListener, gzipPort := serveResource(test, gzipFileName)
@@ -150,13 +150,11 @@ func TestBasicMove_Move_table(test *testing.T) {
 	writer.Close()
 
 	// shutdown servers
-	if err := server.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err := server.Shutdown(ctx)
+	require.NoError(test, err)
 
-	if err := gzipServer.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err = gzipServer.Shutdown(ctx)
+	require.NoError(test, err)
 }
 
 // Test the move method using a table of test data.
@@ -164,7 +162,7 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 	ctx := test.Context()
 
 	_, writer, cleanUp := mockStderr(test)
-	defer cleanUp()
+	test.Cleanup(cleanUp)
 
 	// create a temporary jsonl file of good test data
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
@@ -289,13 +287,11 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 	writer.Close()
 
 	// shutdown servers
-	if err := server.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err := server.Shutdown(ctx)
+	require.NoError(test, err)
 
-	if err := gzipServer.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err = gzipServer.Shutdown(ctx)
+	require.NoError(test, err)
 }
 
 // Test the move method, with a single jsonl file.
@@ -312,10 +308,10 @@ func TestBasicMove_Move(test *testing.T) {
 	mover := &move.BasicMove{
 		InputURL: "file://" + filename,
 	}
-	wantErr := false
+	expectedErr := false
 
-	if err := mover.Move(ctx); (err != nil) != wantErr {
-		test.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, wantErr)
+	if err := mover.Move(ctx); (err != nil) != expectedErr {
+		test.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, expectedErr)
 	}
 
 	writer.Close()
@@ -476,9 +472,7 @@ func TestBasicMove_processJSONL_bad_records(test *testing.T) {
 	}
 
 	expected := 9
-	if actual != expected {
-		test.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, expected)
-	}
+	require.Equal(test, expected, actual)
 }
 
 // ----------------------------------------------------------------------------
@@ -504,10 +498,7 @@ func TestBasicMove_readJSONLFile(test *testing.T) {
 	err := mover.ReadJSONLFile(filename, recordchan)
 
 	writer.Close()
-
-	if err != nil {
-		test.Errorf("MoveImpl.processJSONL() error = %v, want no error", err)
-	}
+	require.NoError(test, err)
 
 	actual := 0
 	for range recordchan {
@@ -515,9 +506,7 @@ func TestBasicMove_readJSONLFile(test *testing.T) {
 	}
 
 	expected := 10
-	if actual != expected {
-		test.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, expected)
-	}
+	require.Equal(test, expected, actual)
 }
 
 // Attempt to read jsonl file that doesn't exist.
@@ -531,9 +520,7 @@ func TestBasicMove_readJSONLFile_file_does_not_exist(test *testing.T) {
 	}
 
 	err := mover.ReadJSONLFile(filename, recordchan)
-	if err == nil {
-		test.Errorf("MoveImpl.processJSONL() error = %v, want error", err)
-	}
+	require.Error(test, err)
 }
 
 // Read jsonl file successfully, no record validation errors.
@@ -556,9 +543,7 @@ func TestBasicMove_readGZIPFile(test *testing.T) {
 
 	writer.Close()
 
-	if err != nil {
-		test.Errorf("MoveImpl.readGZIPFile() error = %v, want no error", err)
-	}
+	require.NoError(test, err)
 
 	actual := 0
 	for range recordchan {
@@ -566,9 +551,7 @@ func TestBasicMove_readGZIPFile(test *testing.T) {
 	}
 
 	expected := 10
-	if actual != expected {
-		test.Errorf("MoveImpl.readGZIPFile() error = %v, want %v", err, expected)
-	}
+	require.Equal(test, expected, actual)
 }
 
 // Attempt to read jsonl file that doesn't exist.
@@ -582,9 +565,7 @@ func TestBasicMove_readGZIPFile_file_does_not_exist(test *testing.T) {
 	}
 
 	err := mover.ReadGZIPFile(filename, recordchan)
-	if err == nil {
-		test.Errorf("MoveImpl.readGZIPFile() error = %v, want error", err)
-	}
+	require.Error(test, err)
 }
 
 // ----------------------------------------------------------------------------
@@ -619,9 +600,7 @@ func TestBasicMove_readJSONLResource(test *testing.T) {
 
 	writer.Close()
 
-	if err != nil {
-		test.Errorf("MoveImpl.readJSONLResource() error = %v, want no error", err)
-	}
+	require.NoError(test, err)
 
 	actual := 0
 	for range recordchan {
@@ -629,13 +608,10 @@ func TestBasicMove_readJSONLResource(test *testing.T) {
 	}
 
 	expected := 10
-	if actual != expected {
-		test.Errorf("MoveImpl.readJSONLResource() error = %v, want %v", err, expected)
-	}
+	require.Equal(test, expected, actual)
 
-	if err := server.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err = server.Shutdown(ctx)
+	require.NoError(test, err)
 }
 
 // Attempt to read jsonl file that doesn't exist.
@@ -655,14 +631,10 @@ func TestBasicMove_readJSONLResource_file_does_not_exist(test *testing.T) {
 	idx := strings.LastIndex(filename, "/")
 	mover := &move.BasicMove{}
 	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	require.Error(test, err)
 
-	if err == nil {
-		test.Errorf("MoveImpl.readJSONLResource() error = %v, want error", err)
-	}
-
-	if err := server.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err = server.Shutdown(ctx)
+	require.NoError(test, err)
 }
 
 // Read jsonl file successfully, no record validation errors.
@@ -670,10 +642,10 @@ func TestBasicMove_readGZIPResource(test *testing.T) {
 	ctx := test.Context()
 
 	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+	test.Cleanup(cleanUp)
 
 	filename, moreCleanUp := createTempGZIPDataFile(test, testGoodData)
-	defer moreCleanUp()
+	test.Cleanup(moreCleanUp)
 
 	server, listener, port := serveResource(test, filename)
 
@@ -694,9 +666,7 @@ func TestBasicMove_readGZIPResource(test *testing.T) {
 
 	writer.Close()
 
-	if err != nil {
-		test.Errorf("MoveImpl.readJSONLResource() error = %v, want no error", err)
-	}
+	require.NoError(test, err)
 
 	actual := 0
 	for range recordchan {
@@ -704,13 +674,10 @@ func TestBasicMove_readGZIPResource(test *testing.T) {
 	}
 
 	expected := 10
-	if actual != expected {
-		test.Errorf("MoveImpl.readJSONLResource() error = %v, want %v", err, expected)
-	}
+	require.Equal(test, expected, actual)
 
-	if err := server.Shutdown(ctx); err != nil {
-		test.Error(err)
-	}
+	err = server.Shutdown(ctx)
+	require.NoError(test, err)
 }
 
 // Attempt to read jsonl file that doesn't exist.
@@ -770,10 +737,10 @@ func TestBasicMove_writeStdout(test *testing.T) {
 
 func TestBasicMove_writeStdout_no_stdout(test *testing.T) {
 	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+	test.Cleanup(cleanUp)
 
 	filename, moreCleanUp := createTempDataFile(test, testGoodData, "jsonl")
-	defer moreCleanUp()
+	test.Cleanup(moreCleanUp)
 
 	recordchan := make(chan queues.Record, 15)
 

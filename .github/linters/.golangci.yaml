@@ -111,6 +111,7 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - lll
+    - paralleltest
   exclusions:
     generated: lax
     presets:
@@ -142,7 +143,7 @@ linters:
         - '.+/http\.Server$'
         - '.+/move_test\.fields$'
     funlen:
-      lines: 130
+      lines: 140
     ireturn:
       allow:
         - error
