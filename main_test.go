@@ -4,7 +4,6 @@ package main
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,24 +11,17 @@ import (
 
 func TestMain(test *testing.T) {
 	tempDir := test.TempDir()
-	inputFile := filepath.Join(tempDir, "move-main-input.jsonl")
-	outputFile := filepath.Join(tempDir, "move-main-output.jsonl")
-	err := touchFile(inputFile)
+
+	inputFile, err := os.CreateTemp(tempDir, "move-main-input-*.jsonl")
 	require.NoError(test, err)
-	os.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile)
-	os.Setenv("SENZING_TOOLS_OUTPUT_URL", "file://"+outputFile)
+	defer os.Remove(inputFile.Name())
+
+	outputFile, err := os.CreateTemp(tempDir, "move-main-output-*.jsonl")
+	require.NoError(test, err)
+	err = os.Remove(outputFile.Name())
+	require.NoError(test, err)
+
+	test.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile.Name())
+	test.Setenv("SENZING_TOOLS_OUTPUT_URL", "file://"+outputFile.Name())
 	main()
-}
-
-// ----------------------------------------------------------------------------
-// Utiity functions
-// ----------------------------------------------------------------------------
-
-func touchFile(name string) error {
-	file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-
-	return file.Close()
 }

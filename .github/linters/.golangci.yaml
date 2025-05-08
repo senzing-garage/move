@@ -93,14 +93,14 @@ linters:
     - tagliatelle
     - testableexamples
     - testifylint
-    # - testpackage
-    # - thelper
+    - testpackage
+    - thelper
     - tparallel
     - unconvert
     - unparam
     - unused
-    # - usestdlibvars
-    # - usetesting
+    - usestdlibvars
+    - usetesting
     # - varnamelen
     - wastedassign
     # - whitespace
@@ -140,6 +140,8 @@ linters:
         - '.+/move\.BasicMove$'
         - '.+/move\.fields$'
         - '.+/http\.Server$'
+        - '.+/move_test\.fields$'
+
     funlen:
       lines: 130
     ireturn:

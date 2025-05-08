@@ -1,7 +1,7 @@
 //go:build !windows
 // +build !windows
 
-package move
+package move_test
 
 import (
 	"bufio"
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/senzing-garage/go-queueing/queues"
+	"github.com/senzing-garage/move/move"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +29,7 @@ import (
 
 // Test the move method using a table of test data.
 func TestBasicMove_Move_table(test *testing.T) {
+	ctx := test.Context()
 
 	_, w, cleanUp := mockStdout(test)
 	defer cleanUp()
@@ -71,86 +73,85 @@ func TestBasicMove_Move_table(test *testing.T) {
 	}
 
 	testCases := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+		name        string
+		fields      fields
+		expectedErr bool
 	}{
 		{
-			name:    "test read jsonl file",
-			fields:  fields{InputURL: "file://" + filename},
-			wantErr: false,
+			name:        "test read jsonl file",
+			fields:      fields{InputURL: "file://" + filename},
+			expectedErr: false,
 		},
 		{
-			name:    "test read gzip file",
-			fields:  fields{InputURL: "file://" + gzipFileName},
-			wantErr: false,
+			name:        "test read gzip file",
+			fields:      fields{InputURL: "file://" + gzipFileName},
+			expectedErr: false,
 		},
 		{
-			name:    "test read jsonl file, bad file name",
-			fields:  fields{InputURL: "file:///bad.jsonl"},
-			wantErr: true,
+			name:        "test read jsonl file, bad file name",
+			fields:      fields{InputURL: "file:///bad.jsonl"},
+			expectedErr: true,
 		},
 		{
-			name:    "test read gzip file, bad file name",
-			fields:  fields{InputURL: "file:///bad.gz"},
-			wantErr: true,
+			name:        "test read gzip file, bad file name",
+			fields:      fields{InputURL: "file:///bad.gz"},
+			expectedErr: true,
 		},
 		{
-			name:    "test read jsonl resource",
-			fields:  fields{InputURL: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):])},
-			wantErr: false,
+			name:        "test read jsonl resource",
+			fields:      fields{InputURL: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):])},
+			expectedErr: false,
 		},
 		{
 			name: "test read gzip resource",
 			fields: fields{
 				InputURL: fmt.Sprintf("http://localhost:%d/%s", gzipPort, gzipFileName[(gzipIdx+1):]),
 			},
-			wantErr: false,
+			expectedErr: false,
 		},
 		{
-			name:    "test read jsonl resource, bad resource name",
-			fields:  fields{InputURL: fmt.Sprintf("http://localhost:%d/bad.jsonl", port)},
-			wantErr: true,
+			name:        "test read jsonl resource, bad resource name",
+			fields:      fields{InputURL: fmt.Sprintf("http://localhost:%d/bad.jsonl", port)},
+			expectedErr: true,
 		},
 		{
-			name:    "test read gzip resource, bad resource name",
-			fields:  fields{InputURL: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort)},
-			wantErr: true,
+			name:        "test read gzip resource, bad resource name",
+			fields:      fields{InputURL: fmt.Sprintf("http://localhost:%d/bad.gz", gzipPort)},
+			expectedErr: true,
 		},
 		{
-			name:    "test read jsonl file, bad url schema",
-			fields:  fields{InputURL: "bad://" + filename},
-			wantErr: true,
+			name:        "test read jsonl file, bad url schema",
+			fields:      fields{InputURL: "bad://" + filename},
+			expectedErr: true,
 		},
 		{
-			name:    "test read jsonl file, bad url",
-			fields:  fields{InputURL: "{}http://" + filename},
-			wantErr: true,
+			name:        "test read jsonl file, bad url",
+			fields:      fields{InputURL: "{}http://" + filename},
+			expectedErr: true,
 		},
 		{
-			name:    "test read jsonl file, bad url",
-			fields:  fields{InputURL: "://"},
-			wantErr: true,
+			name:        "test read jsonl file, bad url",
+			fields:      fields{InputURL: "://"},
+			expectedErr: true,
 		},
 	}
 	for _, testCase := range testCases {
-		ctx := test.Context()
 		test.Run(testCase.name, func(test *testing.T) {
-			basicMove := &BasicMove{
+			basicMove := &move.BasicMove{
 				InputURL: testCase.fields.InputURL,
 			}
-			if err := basicMove.Move(ctx); (err != nil) != testCase.wantErr {
-				test.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, testCase.wantErr)
+			if err := basicMove.Move(ctx); (err != nil) != testCase.expectedErr {
+				test.Errorf("MoveImpl.Move() error = %v, wantErr %v", err, testCase.expectedErr)
 			}
 		})
 	}
 	w.Close()
 
 	// shutdown servers
-	if err := server.Shutdown(context.Background()); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		test.Error(err)
 	}
-	if err := gzipServer.Shutdown(context.Background()); err != nil {
+	if err := gzipServer.Shutdown(ctx); err != nil {
 		test.Error(err)
 	}
 }
@@ -268,7 +269,7 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 	for _, testCase := range testCases {
 		ctx := test.Context()
 		test.Run(testCase.name, func(test *testing.T) {
-			basicMove := &BasicMove{
+			basicMove := &move.BasicMove{
 				InputURL:   testCase.fields.InputURL,
 				JSONOutput: testCase.fields.JSONOutput,
 			}
@@ -298,7 +299,7 @@ func TestBasicMove_Move(test *testing.T) {
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
 	defer cleanUpTempFile()
 
-	m := &BasicMove{
+	m := &move.BasicMove{
 		InputURL: "file://" + filename,
 	}
 	wantErr := false
@@ -318,7 +319,7 @@ func TestBasicMove_Move_unknown_file_type(test *testing.T) {
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "txt")
 	defer cleanUpTempFile()
 
-	m := &BasicMove{
+	m := &move.BasicMove{
 		InputURL: "file://" + filename,
 	}
 	wantErr := true
@@ -338,7 +339,7 @@ func TestBasicMove_Move_unknown_resource_type(test *testing.T) {
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "txt")
 	defer cleanUpTempFile()
 
-	m := &BasicMove{
+	m := &move.BasicMove{
 		InputURL: "http://" + filename,
 	}
 	wantErr := true
@@ -358,7 +359,7 @@ func TestBasicMove_Move_wait_for_logStats(test *testing.T) {
 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
 	defer cleanUpTempFile()
 
-	m := &BasicMove{
+	m := &move.BasicMove{
 		InputURL:                  "file://" + filename,
 		MonitoringPeriodInSeconds: 1,
 	}
@@ -398,13 +399,13 @@ func TestBasicMove_processJSONL(test *testing.T) {
 	defer file.Close()
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL:      "file://" + filename,
 		RecordMax:     11,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	mover.processJSONL(filename, file, recordchan)
+	mover.ProcessJSONL(filename, file, recordchan)
 
 	w.Close()
 
@@ -434,13 +435,13 @@ func TestBasicMove_processJSONL_bad_records(test *testing.T) {
 	defer file.Close()
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL:      "file://" + filename,
 		RecordMax:     14,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	mover.processJSONL(filename, file, recordchan)
+	mover.ProcessJSONL(filename, file, recordchan)
 
 	w.Close()
 
@@ -469,13 +470,13 @@ func TestBasicMove_readJSONLFile(test *testing.T) {
 
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL:      "file://" + filename,
 		RecordMax:     11,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	err := mover.readJSONLFile(filename, recordchan)
+	err := mover.ReadJSONLFile(filename, recordchan)
 	w.Close()
 
 	if err != nil {
@@ -499,10 +500,10 @@ func TestBasicMove_readJSONLFile_file_does_not_exist(test *testing.T) {
 
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL: "file://" + filename,
 	}
-	err := mover.readJSONLFile(filename, recordchan)
+	err := mover.ReadJSONLFile(filename, recordchan)
 	if err == nil {
 		test.Errorf("MoveImpl.processJSONL() error = %v, want error", err)
 	}
@@ -519,13 +520,13 @@ func TestBasicMove_readGZIPFile(test *testing.T) {
 
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL:      "file://" + filename,
 		RecordMax:     11,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	err := mover.readGZIPFile(filename, recordchan)
+	err := mover.ReadGZIPFile(filename, recordchan)
 
 	w.Close()
 
@@ -550,10 +551,10 @@ func TestBasicMove_readGZIPFile_file_does_not_exist(test *testing.T) {
 
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		InputURL: "file://" + filename,
 	}
-	err := mover.readGZIPFile(filename, recordchan)
+	err := mover.ReadGZIPFile(filename, recordchan)
 	if err == nil {
 		test.Errorf("MoveImpl.readGZIPFile() error = %v, want error", err)
 	}
@@ -580,12 +581,12 @@ func TestBasicMove_readJSONLResource(test *testing.T) {
 	}()
 	recordchan := make(chan queues.Record, 15)
 	idx := strings.LastIndex(filename, "/")
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		RecordMax:     11,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	err := mover.readJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
 	w.Close()
 
@@ -621,8 +622,8 @@ func TestBasicMove_readJSONLResource_file_does_not_exist(test *testing.T) {
 	recordchan := make(chan queues.Record, 15)
 
 	idx := strings.LastIndex(filename, "/")
-	mover := &BasicMove{}
-	err := mover.readJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	mover := &move.BasicMove{}
+	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
 	if err == nil {
 		test.Errorf("MoveImpl.readJSONLResource() error = %v, want error", err)
@@ -650,12 +651,12 @@ func TestBasicMove_readGZIPResource(test *testing.T) {
 	}()
 	recordchan := make(chan queues.Record, 15)
 	idx := strings.LastIndex(filename, "/")
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		RecordMax:     11,
 		RecordMin:     2,
 		RecordMonitor: 5,
 	}
-	err := mover.readGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
 	w.Close()
 
@@ -691,8 +692,8 @@ func TestBasicMove_readGZIPResource_file_does_not_exist(test *testing.T) {
 	recordchan := make(chan queues.Record, 15)
 	idx := strings.LastIndex(filename, "/")
 
-	mover := &BasicMove{}
-	err := mover.readGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+	mover := &move.BasicMove{}
+	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
 	if err == nil {
 		test.Errorf("MoveImpl.readGZIPResource() error = %v, want error", err)
@@ -716,7 +717,7 @@ func TestBasicMove_writeStdout(test *testing.T) {
 	defer moreCleanUp()
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		// FileType:                  tt.fields.FileType,
 		InputURL: "file://" + filename,
 		// LogLevel:                  tt.fields.LogLevel,
@@ -727,10 +728,10 @@ func TestBasicMove_writeStdout(test *testing.T) {
 		// RecordMonitor:             tt.fields.RecordMonitor,
 	}
 
-	err := mover.readJSONLFile(filename, recordchan)
+	err := mover.ReadJSONLFile(filename, recordchan)
 	require.NoError(test, err)
 
-	err = mover.writeStdout(recordchan)
+	err = mover.WriteStdout(recordchan)
 	require.NoError(test, err, "MoveImpl.writeStdout() = %v, want %v")
 	w.Close()
 }
@@ -744,7 +745,7 @@ func TestBasicMove_writeStdout_no_stdout(test *testing.T) {
 	defer moreCleanUp()
 	recordchan := make(chan queues.Record, 15)
 
-	mover := &BasicMove{
+	mover := &move.BasicMove{
 		// FileType:                  tt.fields.FileType,
 		InputURL: "file://" + filename,
 		// LogLevel:                  tt.fields.LogLevel,
@@ -755,12 +756,12 @@ func TestBasicMove_writeStdout_no_stdout(test *testing.T) {
 		// RecordMonitor:             tt.fields.RecordMonitor,
 	}
 
-	err := mover.readJSONLFile(filename, recordchan)
+	err := mover.ReadJSONLFile(filename, recordchan)
 	require.NoError(test, err)
 
 	o := os.Stdout
 	os.Stdout = nil
-	err = mover.writeStdout(recordchan)
+	err = mover.WriteStdout(recordchan)
 	require.Error(test, err, "MoveImpl.writeStdout()")
 
 	os.Stdout = o
@@ -811,14 +812,14 @@ func TestBasicMove_SetLogLevel(test *testing.T) {
 	for _, testCase := range testCases {
 		ctx := test.Context()
 		test.Run(testCase.name, func(test *testing.T) {
-			basicMove := &BasicMove{
+			basicMove := &move.BasicMove{
 				LogLevel: testCase.fields.LogLevel,
 			}
 			if err := basicMove.SetLogLevel(ctx, testCase.logLevelName); (err != nil) != testCase.expectedErr {
 				test.Errorf("MoveImpl.SetLogLevel() error = %v, wantErr %v", err, testCase.expectedErr)
 			}
 			if !testCase.expectedErr {
-				got := basicMove.logger.GetLogLevel()
+				got := basicMove.Logger().GetLogLevel()
 				if got != testCase.logLevelName {
 					test.Errorf("MoveImpl.SetLogLevel() got = %v, want %v", got, testCase.logLevelName)
 				}
@@ -832,22 +833,23 @@ func TestBasicMove_SetLogLevel(test *testing.T) {
 // ----------------------------------------------------------------------------
 
 // Create a tempdata file with the given content and extension.
-func createTempDataFile(test *testing.T, content string, fileextension string) (string, func()) {
+func createTempDataFile(t *testing.T, content string, fileextension string) (string, func()) {
+	t.Helper()
 	var filename string
-	test.Helper()
-	tmpfile, err := os.CreateTemp(test.TempDir(), "test.*."+fileextension)
+
+	tmpfile, err := os.CreateTemp(t.TempDir(), "test.*."+fileextension)
 	if err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 
 	if _, err := tmpfile.WriteString(content); err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 
 	filename = tmpfile.Name()
 
 	if err := tmpfile.Close(); err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 
 	return filename,
@@ -857,23 +859,19 @@ func createTempDataFile(test *testing.T, content string, fileextension string) (
 }
 
 // Create a temp gzipped datafile with the given content.
-func createTempGZIPDataFile(test *testing.T, content string) (string, func()) {
-	var (
-		filename string
-	)
-
-	test.Helper()
-
+func createTempGZIPDataFile(t *testing.T, content string) (string, func()) {
+	t.Helper()
+	var filename string
 	tmpfile, err := os.CreateTemp("", "test.*.jsonl.gz")
 	if err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 	defer tmpfile.Close()
 	gf := gzip.NewWriter(tmpfile)
 	defer gf.Close()
 	fw := bufio.NewWriter(gf)
 	if _, err := fw.WriteString(content); err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 	fw.Flush()
 	filename = tmpfile.Name()
@@ -885,13 +883,12 @@ func createTempGZIPDataFile(test *testing.T, content string) (string, func()) {
 }
 
 // Serve the requested resource on a random port.
-func serveResource(test *testing.T, filename string) (*http.Server, *net.Listener, int) {
+func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, int) {
+	t.Helper()
 	var port int
-
-	test.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		test.Fatal(err)
+		t.Fatal(err)
 	}
 
 	listenerAddr, isOK := listener.Addr().(*net.TCPAddr)
@@ -911,17 +908,17 @@ func serveResource(test *testing.T, filename string) (*http.Server, *net.Listene
 }
 
 // Capture stdout for testing.
-func mockStdout(test *testing.T) (*os.File, *os.File, func()) {
+func mockStdout(t *testing.T) (*os.File, *os.File, func()) {
+	t.Helper()
 	var (
 		reader *os.File
 		writer *os.File
 	)
-	test.Helper()
 
 	origStdout := os.Stdout
 	reader, writer, err := os.Pipe()
 	if err != nil {
-		test.Fatalf("couldn't get os Pipe: %v", err)
+		t.Fatalf("couldn't get os Pipe: %v", err)
 	}
 	os.Stdout = writer
 
@@ -934,16 +931,16 @@ func mockStdout(test *testing.T) (*os.File, *os.File, func()) {
 }
 
 // Capture stderr for testing.
-func mockStderr(test *testing.T) (*os.File, *os.File, func()) {
+func mockStderr(t *testing.T) (*os.File, *os.File, func()) {
+	t.Helper()
 	var (
 		reader *os.File
 		writer *os.File
 	)
-	test.Helper()
 	origStderr := os.Stderr
 	reader, writer, err := os.Pipe()
 	if err != nil {
-		test.Fatalf("couldn't get os Pipe: %v", err)
+		t.Fatalf("couldn't get os Pipe: %v", err)
 	}
 	os.Stderr = writer
 

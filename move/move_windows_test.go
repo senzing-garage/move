@@ -3,7 +3,7 @@
 
 //lint:file-ignore U1000 Ignore all unused code, this is a test file.
 
-package move
+package move_test
 
 import (
 	"bufio"
@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/senzing-garage/go-logging/logging"
+	"github.com/senzing-garage/move/move"
 )
 
 // ----------------------------------------------------------------------------
@@ -703,12 +704,22 @@ func TestMoveImpl_SetLogLevel(t *testing.T) {
 	}{
 		{"Test SetLogLevel", fields{LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "DEBUG"}, false},
 		{"Test SetLogLevel", fields{LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "bad"}, true},
-		{"Test SetLogLevel", fields{JSONOutput: true, LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "DEBUG"}, false},
-		{"Test SetLogLevel", fields{JSONOutput: true, LogLevel: "info"}, args{ctx: context.Background(), logLevelName: "bad"}, true},
+		{
+			"Test SetLogLevel",
+			fields{JSONOutput: true, LogLevel: "info"},
+			args{ctx: context.Background(), logLevelName: "DEBUG"},
+			false,
+		},
+		{
+			"Test SetLogLevel",
+			fields{JSONOutput: true, LogLevel: "info"},
+			args{ctx: context.Background(), logLevelName: "bad"},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := &BasicMove{
+			v := &move.BasicMove{
 				LogLevel: tt.fields.LogLevel,
 			}
 			if err := v.SetLogLevel(tt.args.ctx, tt.args.logLevelName); (err != nil) != tt.wantErr {
@@ -876,6 +887,7 @@ var testGoodData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENT
 {"SOCIAL_HANDLE": "shuddersv", "DATE_OF_BIRTH": "16/7/1974", "ADDR_STATE": "NC", "ADDR_POSTAL_CODE": "257609", "ENTITY_TYPE": "TEST", "GENDER": "F", "srccode": "MDMPER", "RECORD_ID": "151110080", "DSRC_ACTION": "A", "ADDR_CITY": "Raleigh", "DRIVERS_LICENSE_NUMBER": "95", "PHONE_NUMBER": "984-881-8384", "NAME_LAST": "OBERMOELLER", "entityid": "151110080", "ADDR_LINE1": "3802 eBllevue RD", "DATA_SOURCE": "TEST"}
 {"SOCIAL_HANDLE": "battlesa", "ADDR_STATE": "LA", "ADDR_POSTAL_CODE": "70706", "NAME_FIRST": "DEVIN", "ENTITY_TYPE": "TEST", "GENDER": "M", "srccode": "MDMPER", "CC_ACCOUNT_NUMBER": "5018608175414044187", "RECORD_ID": "151267101", "DSRC_ACTION": "A", "ADDR_CITY": "Denham Springs", "DRIVERS_LICENSE_NUMBER": "614557601", "PHONE_NUMBER": "318-398-0649", "NAME_LAST": "LOVELL", "entityid": "151267101", "ADDR_LINE1": "8487 Ashley ", "DATA_SOURCE": "TEST"}
 `
+
 var testBadData string = `{"DATA_SOURCE": "ICIJ", "RECORD_ID": "24000001", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "ANNEX FREDERICK & SHIRLEY STS, P.O. BOX N-4805, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000001"}
 {"DATA_SOURCE": "ICIJ", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "ANNEX FREDERICK & SHIRLEY STS, P.O. BOX N-4805, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000001"}
 {"RECORD_ID": "24000001", "ENTITY_TYPE": "ADDRESS", "RECORD_TYPE": "ADDRESS", "icij_source": "BAHAMAS", "icij_type": "ADDRESS", "COUNTRIES": [{"COUNTRY_OF_ASSOCIATION": "BHS"}], "ADDR_FULL": "ANNEX FREDERICK & SHIRLEY STS, P.O. BOX N-4805, NASSAU, BAHAMAS", "REL_ANCHOR_DOMAIN": "ICIJ_ID", "REL_ANCHOR_KEY": "24000001"}

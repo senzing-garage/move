@@ -11,19 +11,19 @@ import (
 // ----------------------------------------------------------------------------
 
 // Check at compile time that the implementation adheres to the interface.
-var _ queues.Record = (*szRecord)(nil)
+var _ queues.Record = (*SzRecord)(nil)
 
-type szRecord struct {
-	body   string
-	id     int
-	source string
+type SzRecord struct {
+	Body   string
+	ID     int
+	Source string
 }
 
-func (r *szRecord) GetMessage() string {
-	return r.body
+func (r *SzRecord) GetMessage() string {
+	return r.Body
 }
 
-func (r *szRecord) GetMessageID() string {
+func (r *SzRecord) GetMessageID() string {
 	// IMPROVE: meaningful or random MessageId?
-	return fmt.Sprintf("%s-%d", r.source, r.id)
+	return fmt.Sprintf("%s-%d", r.Source, r.ID)
 }

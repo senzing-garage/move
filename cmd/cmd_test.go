@@ -1,4 +1,4 @@
-package cmd
+package cmd_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/senzing-garage/move/cmd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,31 +18,31 @@ import (
 func Test_Execute(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "--help"}
-	Execute()
+	cmd.Execute()
 }
 
 func Test_Execute_completion(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "completion"}
-	Execute()
+	cmd.Execute()
 }
 
 func Test_Execute_docs(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "docs"}
-	Execute()
+	cmd.Execute()
 }
 
 func Test_Execute_help(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "--help"}
-	Execute()
+	cmd.Execute()
 }
 
 func Test_PreRun(test *testing.T) {
 	_ = test
 	args := []string{"command-name", "--help"}
-	PreRun(RootCmd, args)
+	cmd.PreRun(cmd.RootCmd, args)
 }
 
 // func Test_RunE(test *testing.T) {
@@ -60,28 +61,27 @@ func Test_PreRun(test *testing.T) {
 
 func Test_CompletionCmd(test *testing.T) {
 	_ = test
-	err := CompletionCmd.Execute()
+	err := cmd.CompletionCmd.Execute()
 	require.NoError(test, err)
-	err = CompletionCmd.RunE(CompletionCmd, []string{})
+	err = cmd.CompletionCmd.RunE(cmd.CompletionCmd, []string{})
 	require.NoError(test, err)
 }
 
 func Test_docsCmd(test *testing.T) {
 	_ = test
-	err := DocsCmd.Execute()
+	err := cmd.DocsCmd.Execute()
 	require.NoError(test, err)
-	err = DocsCmd.RunE(DocsCmd, []string{})
+	err = cmd.DocsCmd.RunE(cmd.DocsCmd, []string{})
 	require.NoError(test, err)
 }
 
 func Test_ExecuteCommand_Help(test *testing.T) {
-	cmd := RootCmd
 	outbuf := bytes.NewBufferString("")
 	errbuf := bytes.NewBufferString("")
-	cmd.SetOut(outbuf)
-	cmd.SetErr(errbuf)
-	cmd.SetArgs([]string{"--help"})
-	err := RootCmd.Execute()
+	cmd.RootCmd.SetOut(outbuf)
+	cmd.RootCmd.SetErr(errbuf)
+	cmd.RootCmd.SetArgs([]string{"--help"})
+	err := cmd.RootCmd.Execute()
 	require.NoError(test, err)
 
 	stdout, err := io.ReadAll(outbuf)
@@ -97,25 +97,8 @@ func Test_ExecuteCommand_Help(test *testing.T) {
 // Test that the version is output, this is a bit diffcult given, the
 // number changes, so just make sure it has a couple of '.' chars.
 func TestVersion(t *testing.T) {
-	result := Version()
+	result := cmd.Version()
 	require.Equal(t, 2, strings.Count(result, "."))
-}
-
-// ----------------------------------------------------------------------------
-// Test private functions
-// ----------------------------------------------------------------------------
-
-func Test_completionAction(test *testing.T) {
-	var buffer bytes.Buffer
-	err := completionAction(&buffer)
-	require.NoError(test, err)
-}
-
-func Test_docsAction_badDir(test *testing.T) {
-	var buffer bytes.Buffer
-	badDir := "/tmp/no/directory/exists"
-	err := DocsAction(&buffer, badDir)
-	require.Error(test, err)
 }
 
 // ----------------------------------------------------------------------------

@@ -1,7 +1,9 @@
-package move
+package move_test
 
 import (
 	"testing"
+
+	"github.com/senzing-garage/move/move"
 )
 
 func Test_szRecord_GetMessageId(test *testing.T) {
@@ -22,10 +24,10 @@ func Test_szRecord_GetMessageId(test *testing.T) {
 	}
 	for _, testCase := range testCases {
 		test.Run(testCase.name, func(test *testing.T) {
-			record := &szRecord{
-				body:   testCase.fields.body,
-				id:     testCase.fields.id,
-				source: testCase.fields.source,
+			record := &move.SzRecord{
+				Body:   testCase.fields.body,
+				ID:     testCase.fields.id,
+				Source: testCase.fields.source,
 			}
 			if actual := record.GetMessageID(); actual != testCase.expected {
 				test.Errorf("szRecord.GetMessageID() = %v, want %v", actual, testCase.expected)
