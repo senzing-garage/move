@@ -137,10 +137,10 @@ func (move *BasicMove) ProcessJSONL(fileName string, reader io.Reader, recordcha
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
-	i := 0
+	iteration := 0
 	for scanner.Scan() {
-		i++
-		if i < move.RecordMin {
+		iteration++
+		if iteration < move.RecordMin {
 			continue
 		}
 		str := strings.TrimSpace(scanner.Text())
@@ -148,15 +148,15 @@ func (move *BasicMove) ProcessJSONL(fileName string, reader io.Reader, recordcha
 		if len(str) > 0 {
 			valid, err := record.Validate(str)
 			if valid {
-				recordchan <- &SzRecord{str, i, fileName}
+				recordchan <- &SzRecord{str, iteration, fileName}
 			} else {
-				move.log(3010, i, err)
+				move.log(3010, iteration, err)
 			}
 		}
-		if (move.RecordMonitor > 0) && (i%move.RecordMonitor == 0) {
-			move.log(2001, i)
+		if (move.RecordMonitor > 0) && (iteration%move.RecordMonitor == 0) {
+			move.log(2001, iteration)
 		}
-		if move.RecordMax > 0 && i >= (move.RecordMax) {
+		if move.RecordMax > 0 && iteration >= (move.RecordMax) {
 			break
 		}
 	}
@@ -315,20 +315,20 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 		return wraperror.Errorf(errForPackage, "invalid outputURL: %s", outputURL)
 	}
 
-	u, err := url.Parse(outputURL)
+	parsedURL, err := url.Parse(outputURL)
 	if err != nil {
 		return fmt.Errorf("invalid outputURL: %s %w", outputURL, err)
 	}
 
-	switch u.Scheme {
+	switch parsedURL.Scheme {
 	case "amqp":
 		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	case "file":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
-			return move.writeJSONLFile(u.Path, recordchan)
-		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
-			return move.writeGZIPFile(u.Path, recordchan)
+		case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
+			return move.writeJSONLFile(parsedURL.Path, recordchan)
+		case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
+			return move.writeGZIPFile(parsedURL.Path, recordchan)
 		default:
 			// IMPROVE: process JSON file?
 			return wraperror.Errorf(errForPackage, "only able to process JSON-Lines files at this time")
@@ -356,20 +356,20 @@ func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Re
 		return wraperror.Errorf(errForPackage, "error output file %s exists. error: %w", fileName, err)
 	}
 	fileName = filepath.Clean(fileName)
-	f, err := os.Create(fileName)
+	file, err := os.Create(fileName)
 	defer func() {
-		err := f.Close()
+		err := file.Close()
 		move.log(3001, fileName, err)
 	}()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %w", fileName, err)
 	}
-	_, err = f.Stat()
+	_, err = file.Stat()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %w", fileName, err)
 	}
 
-	writer := bufio.NewWriter(f)
+	writer := bufio.NewWriter(file)
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
@@ -392,20 +392,20 @@ func (move *BasicMove) writeGZIPFile(fileName string, recordchan chan queues.Rec
 		return wraperror.Errorf(errForPackage, "error output file %s exists", fileName)
 	}
 	fileName = filepath.Clean(fileName)
-	f, err := os.Create(fileName)
+	file, err := os.Create(fileName)
 	defer func() {
-		err := f.Close()
+		err := file.Close()
 		move.log(3001, fileName, err)
 	}()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %w", fileName, err)
 	}
-	_, err = f.Stat()
+	_, err = file.Stat()
 	if err != nil {
 		return fmt.Errorf("fatal error opening %s %w", fileName, err)
 	}
 
-	gzfile := gzip.NewWriter(f)
+	gzfile := gzip.NewWriter(file)
 	defer gzfile.Close()
 	writer := bufio.NewWriter(gzfile)
 	for record := range recordchan {
@@ -447,38 +447,38 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 		return wraperror.Errorf(errForPackage, "check the inputURL parameter: %s", inputURL)
 	}
 
-	u, err := url.Parse(inputURL)
+	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
 		return err
 	}
 
-	switch u.Scheme {
+	switch parsedURL.Scheme {
 	case "file":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
-			return move.ReadJSONLFile(u.Path, recordchan)
-		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
-			return move.ReadGZIPFile(u.Path, recordchan)
+		case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
+			return move.ReadJSONLFile(parsedURL.Path, recordchan)
+		case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
+			return move.ReadGZIPFile(parsedURL.Path, recordchan)
 		default:
 			// IMPROVE: process JSON file?
 			close(recordchan)
 			move.log(5011)
 
-			return wraperror.Errorf(errForPackage, "unable to process file://%s", u.Path)
+			return wraperror.Errorf(errForPackage, "unable to process file://%s", parsedURL.Path)
 		}
 	case "http", "https":
 		switch {
-		case strings.HasSuffix(u.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
+		case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == JSONL:
 			return move.ReadJSONLResource(inputURL, recordchan)
-		case strings.HasSuffix(u.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
+		case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
 			return move.ReadGZIPResource(inputURL, recordchan)
 		default:
 			move.log(5012)
 
-			return wraperror.Errorf(errForPackage, "unable to process http://%s", u.Path)
+			return wraperror.Errorf(errForPackage, "unable to process http://%s", parsedURL.Path)
 		}
 	default:
-		return wraperror.Errorf(errForPackage, "we don't handle %s input URLs", u.Scheme)
+		return wraperror.Errorf(errForPackage, "we don't handle %s input URLs", parsedURL.Scheme)
 	}
 
 }
