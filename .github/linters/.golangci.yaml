@@ -75,7 +75,7 @@ linters:
     - nolintlint
     - nonamedreturns
     - nosprintfhostport
-    # - paralleltest
+    - paralleltest
     - perfsprint
     - prealloc
     - predeclared
@@ -103,9 +103,9 @@ linters:
     - usetesting
     - varnamelen
     - wastedassign
-    # - whitespace
-    # - wrapcheck
-    # - wsl
+    - whitespace
+    - wrapcheck
+    - wsl
     - zerologlint
   disable:
     - gochecknoglobals
@@ -141,7 +141,6 @@ linters:
         - '.+/move\.fields$'
         - '.+/http\.Server$'
         - '.+/move_test\.fields$'
-
     funlen:
       lines: 130
     ireturn:
@@ -152,14 +151,13 @@ linters:
       ignored-functions:
         - '^logger\.Log$'
         - '^move\.log$'
-
 formatters:
   enable:
     - gci
     - gofmt
-    # - gofumpt
+    - gofumpt
     - goimports
-    # - golines
+    - golines
   exclusions:
     generated: lax
     paths:

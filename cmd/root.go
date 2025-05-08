@@ -10,6 +10,7 @@ import (
 
 	"github.com/senzing-garage/go-cmdhelping/cmdhelper"
 	"github.com/senzing-garage/go-cmdhelping/option"
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/move/move"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -86,6 +87,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	if !jsonOutput {
 		outputln("Run with the following parameters:")
+
 		for _, key := range viper.AllKeys() {
 			outputln("  - ", key, " = ", viper.Get(key))
 		}
@@ -100,6 +102,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 				"seconds to let queues and databases settle down and come up.",
 			)
 		}
+
 		time.Sleep(time.Duration(viper.GetInt(option.DelayInSeconds.Arg)) * time.Second)
 	}
 
@@ -117,7 +120,9 @@ func RunE(_ *cobra.Command, _ []string) error {
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
 	}
 
-	return mover.Move(ctx)
+	err := mover.Move(ctx)
+
+	return wraperror.Errorf(err, "move.cmd.RunE error: %w", err)
 }
 
 // Used in construction of cobra.Command.

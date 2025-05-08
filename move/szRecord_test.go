@@ -12,6 +12,7 @@ func Test_szRecord_GetMessageId(test *testing.T) {
 		id     int
 		source string
 	}
+
 	testCases := []struct {
 		name     string
 		fields   fields
@@ -20,7 +21,8 @@ func Test_szRecord_GetMessageId(test *testing.T) {
 		{
 			name:     "test read JSONL file",
 			fields:   fields{body: "", id: 0, source: "file.jsonl"},
-			expected: "file.jsonl-0"},
+			expected: "file.jsonl-0",
+		},
 	}
 	for _, testCase := range testCases {
 		test.Run(testCase.name, func(test *testing.T) {

@@ -18,24 +18,28 @@ import (
 func Test_Execute(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "--help"}
+
 	cmd.Execute()
 }
 
 func Test_Execute_completion(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "completion"}
+
 	cmd.Execute()
 }
 
 func Test_Execute_docs(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "docs"}
+
 	cmd.Execute()
 }
 
 func Test_Execute_help(test *testing.T) {
 	_ = test
 	os.Args = []string{"command-name", "--help"}
+
 	cmd.Execute()
 }
 
@@ -78,6 +82,7 @@ func Test_docsCmd(test *testing.T) {
 func Test_ExecuteCommand_Help(test *testing.T) {
 	outbuf := bytes.NewBufferString("")
 	errbuf := bytes.NewBufferString("")
+
 	cmd.RootCmd.SetOut(outbuf)
 	cmd.RootCmd.SetErr(errbuf)
 	cmd.RootCmd.SetArgs([]string{"--help"})
@@ -99,17 +104,4 @@ func Test_ExecuteCommand_Help(test *testing.T) {
 func TestVersion(t *testing.T) {
 	result := cmd.Version()
 	require.Equal(t, 2, strings.Count(result, "."))
-}
-
-// ----------------------------------------------------------------------------
-// Utiity functions
-// ----------------------------------------------------------------------------
-
-func touchFile(name string) error {
-	file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-
-	return file.Close()
 }
