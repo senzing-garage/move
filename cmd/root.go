@@ -10,6 +10,7 @@ import (
 
 	"github.com/senzing-garage/go-cmdhelping/cmdhelper"
 	"github.com/senzing-garage/go-cmdhelping/option"
+	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/move/move"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -76,25 +77,32 @@ func Execute() {
 	}
 }
 
-// Used in construction of cobra.Command
+// Used in construction of cobra.Command.
 func PreRun(cobraCommand *cobra.Command, args []string) {
 	cmdhelper.PreRun(cobraCommand, args, Use, ContextVariables)
 }
 
-// Used in construction of cobra.Command
+// Used in construction of cobra.Command.
 func RunE(_ *cobra.Command, _ []string) error {
 	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	if !jsonOutput {
-		fmt.Println("Run with the following parameters:")
+		outputln("Run with the following parameters:")
+
 		for _, key := range viper.AllKeys() {
-			fmt.Println("  - ", key, " = ", viper.Get(key))
+			outputln("  - ", key, " = ", viper.Get(key))
 		}
 	}
 
 	if viper.GetInt(option.DelayInSeconds.Arg) > 0 {
 		if !jsonOutput {
-			fmt.Println(time.Now(), "Sleep for", viper.GetInt(option.DelayInSeconds.Arg), "seconds to let queues and databases settle down and come up.")
+			outputln(
+				time.Now(),
+				"Sleep for",
+				viper.GetInt(option.DelayInSeconds.Arg),
+				"seconds to let queues and databases settle down and come up.",
+			)
 		}
+
 		time.Sleep(time.Duration(viper.GetInt(option.DelayInSeconds.Arg)) * time.Second)
 	}
 
@@ -111,10 +119,13 @@ func RunE(_ *cobra.Command, _ []string) error {
 		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
 	}
-	return mover.Move(ctx)
+
+	err := mover.Move(ctx)
+
+	return wraperror.Errorf(err, "move.cmd.RunE error: %w", err)
 }
 
-// Used in construction of cobra.Command
+// Used in construction of cobra.Command.
 func Version() string {
 	return cmdhelper.Version(githubVersion, githubIteration)
 }
@@ -126,4 +137,8 @@ func Version() string {
 // Since init() is always invoked, define command line parameters.
 func init() {
 	cmdhelper.Init(RootCmd, ContextVariables)
+}
+
+func outputln(message ...any) {
+	fmt.Println(message...) //nolint
 }

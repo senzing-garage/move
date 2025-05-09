@@ -1,31 +1,38 @@
-package move
+package move_test
 
 import (
 	"testing"
+
+	"github.com/senzing-garage/move/move"
 )
 
-func Test_szRecord_GetMessageId(t *testing.T) {
+func Test_szRecord_GetMessageId(test *testing.T) {
 	type fields struct {
 		body   string
 		id     int
 		source string
 	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   string
+
+	testCases := []struct {
+		name     string
+		fields   fields
+		expected string
 	}{
-		{name: "test read JSONL file", fields: fields{body: "", id: 0, source: "file.jsonl"}, want: "file.jsonl-0"},
+		{
+			name:     "test read JSONL file",
+			fields:   fields{body: "", id: 0, source: "file.jsonl"},
+			expected: "file.jsonl-0",
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &szRecord{
-				body:   tt.fields.body,
-				id:     tt.fields.id,
-				source: tt.fields.source,
+	for _, testCase := range testCases {
+		test.Run(testCase.name, func(test *testing.T) {
+			record := &move.SzRecord{
+				Body:   testCase.fields.body,
+				ID:     testCase.fields.id,
+				Source: testCase.fields.source,
 			}
-			if got := r.GetMessageID(); got != tt.want {
-				t.Errorf("szRecord.GetMessageID() = %v, want %v", got, tt.want)
+			if actual := record.GetMessageID(); actual != testCase.expected {
+				test.Errorf("szRecord.GetMessageID() = %v, want %v", actual, testCase.expected)
 			}
 		})
 	}
