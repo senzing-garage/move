@@ -3,7 +3,7 @@ module github.com/senzing-garage/move
 go 1.24
 
 require (
-	github.com/senzing-garage/go-cmdhelping v0.3.4
+	github.com/senzing-garage/go-cmdhelping v0.3.5
 	github.com/senzing-garage/go-helpers v0.6.13
 	github.com/senzing-garage/go-logging v1.5.3
 	github.com/senzing-garage/go-queueing v0.4.4
