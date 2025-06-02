@@ -238,7 +238,7 @@ func (move *BasicMove) ReadGZIPResource(gzipURL string, recordchan chan queues.R
 	//nolint:noctx
 	response, err := http.Get(gzipURL) //nolint:gosec
 	if err != nil {
-		return fmt.Errorf("fatal error retrieving inputURL %w", err)
+		return wraperror.Errorf(err, "fatal error retrieving inputURL %s", gzipURL)
 	}
 
 	if response.StatusCode != http.StatusOK {
@@ -249,7 +249,7 @@ func (move *BasicMove) ReadGZIPResource(gzipURL string, recordchan chan queues.R
 
 	reader, err := gzip.NewReader(response.Body)
 	if err != nil {
-		return fmt.Errorf("fatal error reading inputURL %w", err)
+		return wraperror.Errorf(err, "gzip.NewReader error")
 	}
 
 	defer reader.Close()
@@ -289,20 +289,20 @@ func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) err
 func (move *BasicMove) WriteStdout(recordchan chan queues.Record) error {
 	_, err := os.Stdout.Stat()
 	if err != nil {
-		return fmt.Errorf("fatal error opening stdout %w", err)
+		return wraperror.Errorf(err, "fatal error opening stdout")
 	}
 
 	writer := bufio.NewWriter(os.Stdout)
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return fmt.Errorf("error writing to stdout %w", err)
+			return wraperror.Errorf(err, "error writing to stdout")
 		}
 	}
 
 	err = writer.Flush()
 	if err != nil {
-		return fmt.Errorf("error flushing stdout %w", err)
+		return wraperror.Errorf(err, "error flushing stdout")
 	}
 
 	return nil
@@ -334,7 +334,7 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 
 	parsedURL, err := url.Parse(outputURL)
 	if err != nil {
-		return fmt.Errorf("invalid outputURL: %s %w", outputURL, err)
+		return wraperror.Errorf(err, "invalid outputURL: %s", outputURL)
 	}
 
 	switch parsedURL.Scheme {
@@ -383,25 +383,25 @@ func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Re
 	}()
 
 	if err != nil {
-		return fmt.Errorf("fatal error opening %s %w", fileName, err)
+		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
 	_, err = file.Stat()
 	if err != nil {
-		return fmt.Errorf("fatal error opening %s %w", fileName, err)
+		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
 	writer := bufio.NewWriter(file)
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return fmt.Errorf("error writing to stdout %w", err)
+			return wraperror.Errorf(err, "error writing to stdout")
 		}
 	}
 
 	err = writer.Flush()
 	if err != nil {
-		return fmt.Errorf("error flushing %s %w", fileName, err)
+		return wraperror.Errorf(err, "error flushing %s", fileName)
 	}
 
 	return nil
@@ -424,12 +424,12 @@ func (move *BasicMove) writeGZIPFile(fileName string, recordchan chan queues.Rec
 	}()
 
 	if err != nil {
-		return fmt.Errorf("fatal error opening %s %w", fileName, err)
+		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
 	_, err = file.Stat()
 	if err != nil {
-		return fmt.Errorf("fatal error opening %s %w", fileName, err)
+		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
 	gzfile := gzip.NewWriter(file)
@@ -439,13 +439,13 @@ func (move *BasicMove) writeGZIPFile(fileName string, recordchan chan queues.Rec
 	for record := range recordchan {
 		_, err := writer.WriteString(record.GetMessage() + "\n")
 		if err != nil {
-			return fmt.Errorf("error writing to stdout %w", err)
+			return wraperror.Errorf(err, "error writing to stdout")
 		}
 	}
 
 	err = writer.Flush()
 	if err != nil {
-		return fmt.Errorf("error flushing %s %w", fileName, err)
+		return wraperror.Errorf(err, "error flushing %s", fileName)
 	}
 
 	return nil
@@ -516,7 +516,7 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 func (move *BasicMove) readStdin(recordchan chan queues.Record) error {
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		return fmt.Errorf("fatal error reading stdin %w", err)
+		return wraperror.Errorf(err, "fatal error reading stdin")
 	}
 	// printFileInfo(info)
 
