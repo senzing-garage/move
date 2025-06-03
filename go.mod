@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/senzing-garage/go-cmdhelping v0.3.5
-	github.com/senzing-garage/go-helpers v0.6.13-0.20250602130655-6bdb0983aefd
+	github.com/senzing-garage/go-helpers v0.6.13
 	github.com/senzing-garage/go-logging v1.5.3
 	github.com/senzing-garage/go-queueing v0.4.4
 	github.com/spf13/cobra v1.9.1
@@ -42,7 +42,7 @@ require (
 	github.com/senzing-garage/sz-sdk-go v0.15.4 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
-	github.com/spf13/cast v1.9.1 // indirect
+	github.com/spf13/cast v1.9.2 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
