@@ -179,7 +179,7 @@ func (move *BasicMove) ReadJSONLFile(jsonFile string, recordchan chan queues.Rec
 
 	file, err := os.Open(cleanJSONFile)
 	if err != nil {
-		return wraperror.Errorf(err, "move.ReadJSONLFile.os.Open error: %w", err)
+		return wraperror.Errorf(err, "os.Open")
 	}
 
 	defer file.Close()
@@ -197,14 +197,14 @@ func (move *BasicMove) ReadGZIPFile(gzipFileName string, recordchan chan queues.
 
 	gzipfile, err := os.Open(cleanGzipFileName)
 	if err != nil {
-		return wraperror.Errorf(err, "move.ReadGZIPFile.os.Open error: %w", err)
+		return wraperror.Errorf(err, "os.Open")
 	}
 
 	defer gzipfile.Close()
 
 	reader, err := gzip.NewReader(gzipfile)
 	if err != nil {
-		return wraperror.Errorf(err, "move.ReadGZIPFile.gzip.NewReader error: %w", err)
+		return wraperror.Errorf(err, "gzip.NewReader")
 	}
 	defer reader.Close()
 
@@ -220,11 +220,11 @@ func (move *BasicMove) ReadJSONLResource(jsonURL string, recordchan chan queues.
 	//nolint:noctx
 	response, err := http.Get(jsonURL) //nolint:gosec
 	if err != nil {
-		return wraperror.Errorf(err, "move.ReadJSONLResource.http.Get error: %w", err)
+		return wraperror.Errorf(err, "http.Get")
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return wraperror.Errorf(errForPackage, "unable to retrieve %s, return code %d", jsonURL, response.StatusCode)
+		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", jsonURL, response.StatusCode)
 	}
 
 	defer response.Body.Close()
@@ -238,18 +238,18 @@ func (move *BasicMove) ReadGZIPResource(gzipURL string, recordchan chan queues.R
 	//nolint:noctx
 	response, err := http.Get(gzipURL) //nolint:gosec
 	if err != nil {
-		return wraperror.Errorf(err, "fatal error retrieving inputURL %s", gzipURL)
+		return wraperror.Errorf(err, "fatal error retrieving inputURL: %s", gzipURL)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return wraperror.Errorf(errForPackage, "unable to retrieve %s, return code %d", gzipURL, response.StatusCode)
+		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", gzipURL, response.StatusCode)
 	}
 
 	defer response.Body.Close()
 
 	reader, err := gzip.NewReader(response.Body)
 	if err != nil {
-		return wraperror.Errorf(err, "gzip.NewReader error")
+		return wraperror.Errorf(err, "gzip.NewReader")
 	}
 
 	defer reader.Close()
@@ -281,7 +281,7 @@ func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) err
 
 	err = move.getLogger().SetLogLevel(logLevelName)
 
-	return wraperror.Errorf(err, "move.SetLogLevel error: %w", err)
+	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // ----------------------------------------------------------------------------
@@ -358,7 +358,7 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
 		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	default:
-		return wraperror.Errorf(errForPackage, "unknow scheme, unable to write to: %s", outputURL)
+		return wraperror.Errorf(errForPackage, "unknown scheme, unable to write to: %s", outputURL)
 	}
 
 	move.log(2000)
@@ -371,7 +371,7 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 func (move *BasicMove) writeJSONLFile(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { // file exists
-		return wraperror.Errorf(errForPackage, "error output file %s exists. error: %w", fileName, err)
+		return wraperror.Errorf(errForPackage, "error output file %s exists", fileName)
 	}
 
 	fileName = filepath.Clean(fileName)
@@ -478,7 +478,7 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
-		return wraperror.Errorf(err, "move.read.url.Parse error: %w", err)
+		return wraperror.Errorf(err, "url.Parse")
 	}
 
 	switch parsedURL.Scheme {
@@ -507,7 +507,7 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 			return wraperror.Errorf(errForPackage, "unable to process http://%s", parsedURL.Path)
 		}
 	default:
-		return wraperror.Errorf(errForPackage, "we don't handle %s input URLs", parsedURL.Scheme)
+		return wraperror.Errorf(errForPackage, "cannot handle input URL: %s", parsedURL.Scheme)
 	}
 }
 
@@ -527,7 +527,7 @@ func (move *BasicMove) readStdin(recordchan chan queues.Record) error {
 		return nil
 	}
 
-	return wraperror.Errorf(errForPackage, "fatal error stdin not piped")
+	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // ----------------------------------------------------------------------------
