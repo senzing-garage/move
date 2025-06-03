@@ -1,6 +1,6 @@
 name: Go test windows
 
-on: [pull_request, workflow_dispatch]
+on: [push, workflow_dispatch]
 
 permissions:
   contents: read
