@@ -122,7 +122,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 
 	err := mover.Move(ctx)
 
-	return wraperror.Errorf(err, "move.cmd.RunE error: %w", err)
+	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // Used in construction of cobra.Command.
