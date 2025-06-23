@@ -17,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/senzing-garage/move/move"
 	"github.com/stretchr/testify/require"
 )
@@ -402,371 +401,371 @@ func TestBasicMove_Move_wait_for_logStats(test *testing.T) {
 // ----------------------------------------------------------------------------
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_processJSONL(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// func TestBasicMove_processJSONL(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
-	defer cleanUpTempFile()
+// 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
+// 	defer cleanUpTempFile()
 
-	file, err := os.Open(filename)
-	if err != nil {
-		test.Fatal(err)
-	}
+// 	file, err := os.Open(filename)
+// 	if err != nil {
+// 		test.Fatal(err)
+// 	}
 
-	defer file.Close()
+// 	defer file.Close()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL:      "file://" + filename,
-		RecordMax:     11,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	mover.ProcessJSONL(filename, file, recordchan)
+// 	mover := &move.BasicMove{
+// 		InputURL:      "file://" + filename,
+// 		RecordMax:     11,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	mover.ProcessJSONL(filename, file, recordchan)
 
-	writer.Close()
+// 	writer.Close()
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 10
-	if actual != expected {
-		test.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, expected)
-	}
-}
+// 	expected := 10
+// 	if actual != expected {
+// 		test.Errorf("MoveImpl.processJSONL() error = %v, want %v", err, expected)
+// 	}
+// }
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_processJSONL_bad_records(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// func TestBasicMove_processJSONL_bad_records(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, cleanUpTempFile := createTempDataFile(test, testBadData, "jsonl")
-	defer cleanUpTempFile()
+// 	filename, cleanUpTempFile := createTempDataFile(test, testBadData, "jsonl")
+// 	defer cleanUpTempFile()
 
-	file, err := os.Open(filename)
-	if err != nil {
-		test.Fatal(err)
-	}
+// 	file, err := os.Open(filename)
+// 	if err != nil {
+// 		test.Fatal(err)
+// 	}
 
-	defer file.Close()
+// 	defer file.Close()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL:      "file://" + filename,
-		RecordMax:     14,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	mover.ProcessJSONL(filename, file, recordchan)
+// 	mover := &move.BasicMove{
+// 		InputURL:      "file://" + filename,
+// 		RecordMax:     14,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	mover.ProcessJSONL(filename, file, recordchan)
 
-	writer.Close()
+// 	writer.Close()
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 9
-	require.Equal(test, expected, actual)
-}
+// 	expected := 9
+// 	require.Equal(test, expected, actual)
+// }
 
 // ----------------------------------------------------------------------------
 // test file read methods
 // ----------------------------------------------------------------------------
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_readJSONLFile(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// func TestBasicMove_readJSONLFile(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
-	defer cleanUpTempFile()
+// 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
+// 	defer cleanUpTempFile()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL:      "file://" + filename,
-		RecordMax:     11,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	err := mover.ReadJSONLFile(filename, recordchan)
+// 	mover := &move.BasicMove{
+// 		InputURL:      "file://" + filename,
+// 		RecordMax:     11,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	err := mover.ReadJSONLFile(filename, recordchan)
 
-	writer.Close()
-	require.NoError(test, err)
+// 	writer.Close()
+// 	require.NoError(test, err)
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 10
-	require.Equal(test, expected, actual)
-}
+// 	expected := 10
+// 	require.Equal(test, expected, actual)
+// }
 
 // Attempt to read jsonl file that doesn't exist.
-func TestBasicMove_readJSONLFile_file_does_not_exist(test *testing.T) {
-	filename := "bad.jsonl"
+// func TestBasicMove_readJSONLFile_file_does_not_exist(test *testing.T) {
+// 	filename := "bad.jsonl"
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL: "file://" + filename,
-	}
+// 	mover := &move.BasicMove{
+// 		InputURL: "file://" + filename,
+// 	}
 
-	err := mover.ReadJSONLFile(filename, recordchan)
-	require.Error(test, err)
-}
+// 	err := mover.ReadJSONLFile(filename, recordchan)
+// 	require.Error(test, err)
+// }
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_readGZIPFile(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// func TestBasicMove_readGZIPFile(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, cleanUpTempFile := createTempGZIPDataFile(test, testGoodData)
-	defer cleanUpTempFile()
+// 	filename, cleanUpTempFile := createTempGZIPDataFile(test, testGoodData)
+// 	defer cleanUpTempFile()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL:      "file://" + filename,
-		RecordMax:     11,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	err := mover.ReadGZIPFile(filename, recordchan)
+// 	mover := &move.BasicMove{
+// 		InputURL:      "file://" + filename,
+// 		RecordMax:     11,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	err := mover.ReadGZIPFile(filename, recordchan)
 
-	writer.Close()
+// 	writer.Close()
 
-	require.NoError(test, err)
+// 	require.NoError(test, err)
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 10
-	require.Equal(test, expected, actual)
-}
+// 	expected := 10
+// 	require.Equal(test, expected, actual)
+// }
 
 // Attempt to read jsonl file that doesn't exist.
-func TestBasicMove_readGZIPFile_file_does_not_exist(test *testing.T) {
-	filename := "bad.gz"
+// func TestBasicMove_readGZIPFile_file_does_not_exist(test *testing.T) {
+// 	filename := "bad.gz"
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		InputURL: "file://" + filename,
-	}
+// 	mover := &move.BasicMove{
+// 		InputURL: "file://" + filename,
+// 	}
 
-	err := mover.ReadGZIPFile(filename, recordchan)
-	require.Error(test, err)
-}
+// 	err := mover.ReadGZIPFile(filename, recordchan)
+// 	require.Error(test, err)
+// }
 
 // ----------------------------------------------------------------------------
 // test resource read methods
 // ----------------------------------------------------------------------------
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_readJSONLResource(test *testing.T) {
-	ctx := test.Context()
+// func TestBasicMove_readJSONLResource(test *testing.T) {
+// 	ctx := test.Context()
 
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
-	defer cleanUpTempFile()
+// 	filename, cleanUpTempFile := createTempDataFile(test, testGoodData, "jsonl")
+// 	defer cleanUpTempFile()
 
-	server, listener, port := serveResource(test, filename)
-	go func() {
-		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server.Serve(): %v", err)
-		}
-	}()
+// 	server, listener, port := serveResource(test, filename)
+// 	go func() {
+// 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
+// 			log.Fatalf("server.Serve(): %v", err)
+// 		}
+// 	}()
 
-	recordchan := make(chan queues.Record, 15)
-	idx := strings.LastIndex(filename, "/")
-	mover := &move.BasicMove{
-		RecordMax:     11,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+// 	recordchan := make(chan queues.Record, 15)
+// 	idx := strings.LastIndex(filename, "/")
+// 	mover := &move.BasicMove{
+// 		RecordMax:     11,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
-	writer.Close()
+// 	writer.Close()
 
-	require.NoError(test, err)
+// 	require.NoError(test, err)
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 10
-	require.Equal(test, expected, actual)
+// 	expected := 10
+// 	require.Equal(test, expected, actual)
 
-	err = server.Shutdown(ctx)
-	require.NoError(test, err)
-}
+// 	err = server.Shutdown(ctx)
+// 	require.NoError(test, err)
+// }
 
 // Attempt to read jsonl file that doesn't exist.
-func TestBasicMove_readJSONLResource_file_does_not_exist(test *testing.T) {
-	ctx := test.Context()
-	filename := "/bad.jsonl"
+// func TestBasicMove_readJSONLResource_file_does_not_exist(test *testing.T) {
+// 	ctx := test.Context()
+// 	filename := "/bad.jsonl"
 
-	server, listener, port := serveResource(test, filename)
-	go func() {
-		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server.Serve(): %v", err)
-		}
-	}()
+// 	server, listener, port := serveResource(test, filename)
+// 	go func() {
+// 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
+// 			log.Fatalf("server.Serve(): %v", err)
+// 		}
+// 	}()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	idx := strings.LastIndex(filename, "/")
-	mover := &move.BasicMove{}
-	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
-	require.Error(test, err)
+// 	idx := strings.LastIndex(filename, "/")
+// 	mover := &move.BasicMove{}
+// 	err := mover.ReadJSONLResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+// 	require.Error(test, err)
 
-	err = server.Shutdown(ctx)
-	require.NoError(test, err)
-}
+// 	err = server.Shutdown(ctx)
+// 	require.NoError(test, err)
+// }
 
 // Read jsonl file successfully, no record validation errors.
-func TestBasicMove_readGZIPResource(test *testing.T) {
-	ctx := test.Context()
+// func TestBasicMove_readGZIPResource(test *testing.T) {
+// 	ctx := test.Context()
 
-	_, writer, cleanUp := mockStdout(test)
-	test.Cleanup(cleanUp)
+// 	_, writer, cleanUp := mockStdout(test)
+// 	test.Cleanup(cleanUp)
 
-	filename, moreCleanUp := createTempGZIPDataFile(test, testGoodData)
-	test.Cleanup(moreCleanUp)
+// 	filename, moreCleanUp := createTempGZIPDataFile(test, testGoodData)
+// 	test.Cleanup(moreCleanUp)
 
-	server, listener, port := serveResource(test, filename)
+// 	server, listener, port := serveResource(test, filename)
 
-	go func() {
-		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server.Serve(): %v", err)
-		}
-	}()
+// 	go func() {
+// 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
+// 			log.Fatalf("server.Serve(): %v", err)
+// 		}
+// 	}()
 
-	recordchan := make(chan queues.Record, 15)
-	idx := strings.LastIndex(filename, "/")
-	mover := &move.BasicMove{
-		RecordMax:     11,
-		RecordMin:     2,
-		RecordMonitor: 5,
-	}
-	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+// 	recordchan := make(chan queues.Record, 15)
+// 	idx := strings.LastIndex(filename, "/")
+// 	mover := &move.BasicMove{
+// 		RecordMax:     11,
+// 		RecordMin:     2,
+// 		RecordMonitor: 5,
+// 	}
+// 	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
 
-	writer.Close()
+// 	writer.Close()
 
-	require.NoError(test, err)
+// 	require.NoError(test, err)
 
-	actual := 0
-	for range recordchan {
-		actual++
-	}
+// 	actual := 0
+// 	for range recordchan {
+// 		actual++
+// 	}
 
-	expected := 10
-	require.Equal(test, expected, actual)
+// 	expected := 10
+// 	require.Equal(test, expected, actual)
 
-	err = server.Shutdown(ctx)
-	require.NoError(test, err)
-}
+// 	err = server.Shutdown(ctx)
+// 	require.NoError(test, err)
+// }
 
 // Attempt to read jsonl file that doesn't exist.
-func TestBasicMove_readGZIPResource_file_does_not_exist(test *testing.T) {
-	ctx := test.Context()
-	filename := "/bad.gz"
+// func TestBasicMove_readGZIPResource_file_does_not_exist(test *testing.T) {
+// 	ctx := test.Context()
+// 	filename := "/bad.gz"
 
-	server, listener, port := serveResource(test, filename)
-	go func() {
-		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server.Serve(): %v", err)
-		}
-	}()
+// 	server, listener, port := serveResource(test, filename)
+// 	go func() {
+// 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
+// 			log.Fatalf("server.Serve(): %v", err)
+// 		}
+// 	}()
 
-	recordchan := make(chan queues.Record, 15)
-	idx := strings.LastIndex(filename, "/")
+// 	recordchan := make(chan queues.Record, 15)
+// 	idx := strings.LastIndex(filename, "/")
 
-	mover := &move.BasicMove{}
-	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
-	require.Error(test, err)
+// 	mover := &move.BasicMove{}
+// 	err := mover.ReadGZIPResource(fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):]), recordchan)
+// 	require.Error(test, err)
 
-	err = server.Shutdown(ctx)
-	require.NoError(test, err)
-}
+// 	err = server.Shutdown(ctx)
+// 	require.NoError(test, err)
+// }
 
 // ----------------------------------------------------------------------------
 // test write methods
 // ----------------------------------------------------------------------------
 
-func TestBasicMove_writeStdout(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	defer cleanUp()
+// func TestBasicMove_writeStdout(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	defer cleanUp()
 
-	filename, moreCleanUp := createTempDataFile(test, testGoodData, "jsonl")
-	defer moreCleanUp()
+// 	filename, moreCleanUp := createTempDataFile(test, testGoodData, "jsonl")
+// 	defer moreCleanUp()
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		// FileType:                  tt.fields.FileType,
-		InputURL: "file://" + filename,
-		// LogLevel:                  tt.fields.LogLevel,
-		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
-		// OutputUrl:                 tt.fields.OutputUrl,
-		// RecordMax:                 tt.fields.RecordMax,
-		// RecordMin:                 tt.fields.RecordMin,
-		// RecordMonitor:             tt.fields.RecordMonitor,
-	}
+// 	mover := &move.BasicMove{
+// 		// FileType:                  tt.fields.FileType,
+// 		InputURL: "file://" + filename,
+// 		// LogLevel:                  tt.fields.LogLevel,
+// 		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
+// 		// OutputUrl:                 tt.fields.OutputUrl,
+// 		// RecordMax:                 tt.fields.RecordMax,
+// 		// RecordMin:                 tt.fields.RecordMin,
+// 		// RecordMonitor:             tt.fields.RecordMonitor,
+// 	}
 
-	err := mover.ReadJSONLFile(filename, recordchan)
-	require.NoError(test, err)
+// 	err := mover.ReadJSONLFile(filename, recordchan)
+// 	require.NoError(test, err)
 
-	err = mover.WriteStdout(recordchan)
-	require.NoError(test, err, "MoveImpl.writeStdout() = %v, want %v")
-	writer.Close()
-}
+// 	err = mover.WriteStdout(recordchan)
+// 	require.NoError(test, err, "MoveImpl.writeStdout() = %v, want %v")
+// 	writer.Close()
+// }
 
-func TestBasicMove_writeStdout_no_stdout(test *testing.T) {
-	_, writer, cleanUp := mockStdout(test)
-	test.Cleanup(cleanUp)
+// func TestBasicMove_writeStdout_no_stdout(test *testing.T) {
+// 	_, writer, cleanUp := mockStdout(test)
+// 	test.Cleanup(cleanUp)
 
-	filename, moreCleanUp := createTempDataFile(test, testGoodData, "jsonl")
-	test.Cleanup(moreCleanUp)
+// 	filename, moreCleanUp := createTempDataFile(test, testGoodData, "jsonl")
+// 	test.Cleanup(moreCleanUp)
 
-	recordchan := make(chan queues.Record, 15)
+// 	recordchan := make(chan queues.Record, 15)
 
-	mover := &move.BasicMove{
-		// FileType:                  tt.fields.FileType,
-		InputURL: "file://" + filename,
-		// LogLevel:                  tt.fields.LogLevel,
-		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
-		// OutputUrl:                 tt.fields.OutputUrl,
-		// RecordMax:                 tt.fields.RecordMax,
-		// RecordMin:                 tt.fields.RecordMin,
-		// RecordMonitor:             tt.fields.RecordMonitor,
-	}
+// 	mover := &move.BasicMove{
+// 		// FileType:                  tt.fields.FileType,
+// 		InputURL: "file://" + filename,
+// 		// LogLevel:                  tt.fields.LogLevel,
+// 		// MonitoringPeriodInSeconds: tt.fields.MonitoringPeriodInSeconds,
+// 		// OutputUrl:                 tt.fields.OutputUrl,
+// 		// RecordMax:                 tt.fields.RecordMax,
+// 		// RecordMin:                 tt.fields.RecordMin,
+// 		// RecordMonitor:             tt.fields.RecordMonitor,
+// 	}
 
-	err := mover.ReadJSONLFile(filename, recordchan)
-	require.NoError(test, err)
+// 	err := mover.ReadJSONLFile(filename, recordchan)
+// 	require.NoError(test, err)
 
-	output := os.Stdout
-	os.Stdout = nil
-	err = mover.WriteStdout(recordchan)
-	require.Error(test, err, "MoveImpl.writeStdout()")
+// 	output := os.Stdout
+// 	/os.Stdout = nil
+// 	err = mover.WriteStdout(recordchan)
+// 	require.Error(test, err, "MoveImpl.writeStdout()")
 
-	os.Stdout = output
+// 	os.Stdout = output
 
-	writer.Close()
-}
+// 	writer.Close()
+// }
 
 func TestBasicMove_SetLogLevel(test *testing.T) {
 	type fields struct {
