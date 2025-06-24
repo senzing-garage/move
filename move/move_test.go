@@ -103,10 +103,11 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 		{
 			name: "Read Txt file of JSONL",
 			testObject: &move.BasicMove{
-				InputURL:  "file://" + testFilename(test, testdataTxtJSONLGoodData),
-				FileType:  "JSONL",
-				LogLevel:  "WARN",
-				OutputURL: "null://",
+				FileType:   "JSONL",
+				InputURL:   "file://" + testFilename(test, testdataTxtJSONLGoodData),
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
 			},
 		},
 		{
@@ -121,10 +122,11 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 		{
 			name: "Read bad TXT file of JSONL",
 			testObject: &move.BasicMove{
-				InputURL:  "file://" + testFilename(test, testdataTxtJSONLBadData),
-				FileType:  "JSONL",
-				LogLevel:  "ERROR",
-				OutputURL: "null://",
+				FileType:   "JSONL",
+				InputURL:   "file://" + testFilename(test, testdataTxtJSONLBadData),
+				JSONOutput: true,
+				LogLevel:   "ERROR",
+				OutputURL:  "null://",
 			},
 		},
 		{
@@ -139,8 +141,8 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 		{
 			name: "Read TXT file of GZIP",
 			testObject: &move.BasicMove{
-				InputURL:   "file://" + testFilename(test, testdataTxtGZIPGoodData),
 				FileType:   "GZ",
+				InputURL:   "file://" + testFilename(test, testdataTxtGZIPGoodData),
 				JSONOutput: true,
 				LogLevel:   "WARN",
 				OutputURL:  "null://",
@@ -158,8 +160,8 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 		{
 			name: "Read bad TXT file of GZIP",
 			testObject: &move.BasicMove{
-				InputURL:   "file://" + testFilename(test, testdataTxtGZIPBadData),
 				FileType:   "GZ",
+				InputURL:   "file://" + testFilename(test, testdataTxtGZIPBadData),
 				JSONOutput: true,
 				LogLevel:   "ERROR",
 				OutputURL:  "null://",
