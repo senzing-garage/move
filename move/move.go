@@ -221,7 +221,7 @@ func (move *BasicMove) readFile(ctx context.Context, parsedURL *url.URL, recordc
 	switch {
 	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == FiletypeJSONL:
 		err = move.readFileOfJSONL(parsedURL.Path, recordchan)
-	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
+	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == FiletypeGZ:
 		err = move.readFileOfGZIP(parsedURL.Path, recordchan)
 	default:
 		// IMPROVE: process JSON file?
@@ -244,7 +244,7 @@ func (move *BasicMove) readHTTP(ctx context.Context, parsedURL *url.URL, recordc
 	switch {
 	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == FiletypeJSONL:
 		err = move.readHTTPofJSONL(inputURL, recordchan)
-	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
+	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == FiletypeGZ:
 		err = move.readHTTPofGZIP(inputURL, recordchan)
 	default:
 		move.log(5012)
@@ -592,7 +592,7 @@ func (move *BasicMove) getLogger() logging.Logging {
 	if move.logger == nil {
 		options := []interface{}{
 			logging.OptionCallerSkip{Value: callerSkip},
-			logging.OptionMessageFields{Value: []string{"id", "text", "reason", "details"}},
+			logging.OptionMessageFields{Value: []string{"id", "text", "reason"}},
 		}
 
 		move.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)

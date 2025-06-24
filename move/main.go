@@ -41,7 +41,7 @@ var IDMessages = map[int]string{
 	2003: Prefix + "CPUs: %d, Go routines: %d, CGO calls: %d, Num GC: %d, GC pause total: %v, LastGC: %v, TotalAlloc: %d, HeapAlloc: %d, NextGC: %d, GCSys: %d, HeapSys: %d, StackSys: %d, Sys - total OS bytes: %d, CPU fraction used by GC: %f",
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful
 	3001: Prefix + "Error closing file %s: %+v",
-	3010: Prefix + "Error validating line %d",
+	3010: Prefix + "Error validating line %d %+v",
 	3011: Prefix + "Unable to read build info.",
 	// ERROR 	4000-4999 	Unexpected situations, processing was not successful
 	// FATAL 	5000-5999 	The process needs to shutdown
