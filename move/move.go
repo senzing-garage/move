@@ -35,6 +35,7 @@ type Error struct {
 type BasicMove struct {
 	FileType                  string
 	InputURL                  string
+	Plaintext                 bool // FIXME: implement this
 	JSONOutput                bool
 	logger                    logging.Logging
 	LogLevel                  string
@@ -82,6 +83,7 @@ func (move *BasicMove) Move(ctx context.Context) error {
 		}
 	}
 
+	move.log(1001, move.InputURL, move.OutputURL, move.FileType, move.RecordMin, move.RecordMax)
 	move.logBuildInfo()
 	move.logStats()
 
@@ -134,7 +136,8 @@ func (move *BasicMove) Move(ctx context.Context) error {
 
 	if readErr != nil {
 		return wraperror.Errorf(readErr, "Read error")
-	} else if writeErr != nil {
+	}
+	if writeErr != nil {
 		return wraperror.Errorf(writeErr, "Write error")
 	}
 

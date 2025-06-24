@@ -88,11 +88,6 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 // Used in construction of cobra.Command.
 func RunE(_ *cobra.Command, _ []string) error {
 
-	inputURL := viper.GetString(option.InputURL.Arg)
-	if len(inputURL) == 0 {
-		return wraperror.Errorf(packageErr, "Missing value for %s", option.InputURL.Envar)
-	}
-
 	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	if !jsonOutput {
 		outputln("Run with the following parameters:")
