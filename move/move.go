@@ -75,6 +75,13 @@ func (move *BasicMove) Move(ctx context.Context) error {
 		err      error
 	)
 
+	if len(move.LogLevel) > 0 {
+		err = move.SetLogLevel(ctx, move.LogLevel)
+		if err != nil {
+			return wraperror.Errorf(err, "SetLogLevel")
+		}
+	}
+
 	move.logBuildInfo()
 	move.logStats()
 
@@ -155,6 +162,9 @@ func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) err
 	// Set ValidateImpl log level.
 
 	err = move.getLogger().SetLogLevel(logLevelName)
+	if err == nil {
+		move.LogLevel = logLevelName
+	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -380,12 +390,14 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	case "file":
 		err = move.writeFile(ctx, parsedURL, recordchan)
+	case "https":
+		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
+		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
+	case "null":
+		err = move.writeNull(recordchan)
 	case "sqs":
 		// allows for using a dummy URL with just a queue-name
 		// eg  sqs://lookup?queue-name=myqueue
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
-	case "https":
-		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
 		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	default:
 		return wraperror.Errorf(errForPackage, "unknown scheme, unable to write to: %s", outputURL)
@@ -499,6 +511,14 @@ func (move *BasicMove) writeFileOfJSONL(fileName string, recordchan chan queues.
 	return nil
 }
 
+func (move *BasicMove) writeNull(recordchan chan queues.Record) error {
+	for record := range recordchan {
+		move.log(1001, record)
+	}
+
+	return nil
+}
+
 func (move *BasicMove) writeStdout(recordchan chan queues.Record) error {
 	_, err := os.Stdout.Stat()
 	if err != nil {
@@ -571,7 +591,8 @@ func (move *BasicMove) getLogger() logging.Logging {
 
 	if move.logger == nil {
 		options := []interface{}{
-			&logging.OptionCallerSkip{Value: callerSkip},
+			logging.OptionCallerSkip{Value: callerSkip},
+			logging.OptionMessageFields{Value: []string{"id", "text", "reason"}},
 		}
 
 		move.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)

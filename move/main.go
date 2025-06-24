@@ -34,6 +34,7 @@ var IDMessages = map[int]string{
 	// TRACE 	0000-0999 	Entry/Exit tracing 				May contain sensitive data.
 	// DEBUG 	1000-1999 	Values seen during processing 	May contain sensitive data.
 	// INFO 	2000-2999 	Process steps achieved
+	1000: Prefix + "Drained %v",
 	2000: Prefix + "So long and thanks for all the fish.",
 	2001: Prefix + "Records sent to queue: %d",
 	2002: Prefix + "GoVersion: %s, Path: %s, Main.Path: %s, Main.Version: %s",

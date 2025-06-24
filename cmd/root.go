@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -29,6 +30,8 @@ const (
     move --input-url "https://public-read-access.s3.amazonaws.com/TestDataSets/SenzingTruthSet/truth-set-3.0.0.jsonl" --output-url "amqp://guest:guest@192.168.6.96:5672"
 `
 )
+
+var packageErr = errors.New("move")
 
 // ----------------------------------------------------------------------------
 // Context variables
@@ -84,6 +87,12 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command.
 func RunE(_ *cobra.Command, _ []string) error {
+
+	inputURL := viper.GetString(option.InputURL.Arg)
+	if len(inputURL) == 0 {
+		return wraperror.Errorf(packageErr, "Missing value for %s", option.InputURL.Envar)
+	}
+
 	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	if !jsonOutput {
 		outputln("Run with the following parameters:")
@@ -93,17 +102,18 @@ func RunE(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	if viper.GetInt(option.DelayInSeconds.Arg) > 0 {
+	delayInSeconds := viper.GetInt(option.DelayInSeconds.Arg)
+	if delayInSeconds > 0 {
 		if !jsonOutput {
 			outputln(
 				time.Now(),
 				"Sleep for",
-				viper.GetInt(option.DelayInSeconds.Arg),
+				delayInSeconds,
 				"seconds to let queues and databases settle down and come up.",
 			)
 		}
 
-		time.Sleep(time.Duration(viper.GetInt(option.DelayInSeconds.Arg)) * time.Second)
+		time.Sleep(time.Duration(delayInSeconds) * time.Second)
 	}
 
 	ctx := context.Background()
