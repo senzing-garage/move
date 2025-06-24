@@ -592,7 +592,7 @@ func (move *BasicMove) getLogger() logging.Logging {
 	if move.logger == nil {
 		options := []interface{}{
 			logging.OptionCallerSkip{Value: callerSkip},
-			logging.OptionMessageFields{Value: []string{"id", "text", "reason"}},
+			logging.OptionMessageFields{Value: []string{"id", "text", "reason", "details"}},
 		}
 
 		move.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)

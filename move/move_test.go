@@ -23,7 +23,7 @@ const (
 // test Move method
 // ----------------------------------------------------------------------------
 
-func TestBasicMove_Move(test *testing.T) {
+func TestBasicMove_Move_File(test *testing.T) {
 
 	testCases := []struct {
 		name       string
@@ -61,6 +61,67 @@ func TestBasicMove_Move(test *testing.T) {
 			name: "Read bad GZIP file",
 			testObject: &move.BasicMove{
 				InputURL:   "file://" + testDataPath(test, testdataGZIPBadData),
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
+			name:      "Bad input JSONL filename",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "file:///bad.jsonl",
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
+			name:      "Bad input GZIP filename",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "file:///bad.jsonl.gz",
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		test.Run(testCase.name, func(test *testing.T) {
+			err := testCase.testObject.Move(test.Context())
+			if testCase.expectErr {
+				require.Error(test, err)
+			} else {
+				require.NoError(test, err)
+			}
+		})
+	}
+}
+
+func TestBasicMove_Move_BadURL(test *testing.T) {
+
+	testCases := []struct {
+		name       string
+		testObject move.Move
+		expectErr  bool
+	}{
+		{
+			name:      "Bad URL - bad schema",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "bad://" + testDataPath(test, testdataGZIPGoodData),
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
+			name:      "Bad URL - no schema",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "://",
 				JSONOutput: true,
 				LogLevel:   "WARN",
 				OutputURL:  "null://",
@@ -133,16 +194,6 @@ func TestBasicMove_Move(test *testing.T) {
 // 		expectedErr bool
 // 	}{
 // 		{
-// 			name:        "test read jsonl file, bad file name",
-// 			fields:      fields{InputURL: "file:///bad.jsonl"},
-// 			expectedErr: true,
-// 		},
-// 		{
-// 			name:        "test read gzip file, bad file name",
-// 			fields:      fields{InputURL: "file:///bad.gz"},
-// 			expectedErr: true,
-// 		},
-// 		{
 // 			name:        "test read jsonl resource",
 // 			fields:      fields{InputURL: fmt.Sprintf("http://localhost:%d/%s", port, filename[(idx+1):])},
 // 			expectedErr: false,
@@ -165,18 +216,8 @@ func TestBasicMove_Move(test *testing.T) {
 // 			expectedErr: true,
 // 		},
 // 		{
-// 			name:        "test read jsonl file, bad url schema",
-// 			fields:      fields{InputURL: "bad://" + filename},
-// 			expectedErr: true,
-// 		},
-// 		{
 // 			name:        "test read jsonl file, bad url",
 // 			fields:      fields{InputURL: "{}http://" + filename},
-// 			expectedErr: true,
-// 		},
-// 		{
-// 			name:        "test read jsonl file, bad url",
-// 			fields:      fields{InputURL: "://"},
 // 			expectedErr: true,
 // 		},
 // 	}
