@@ -42,6 +42,36 @@ func TestBasicMove_Move_Input_Bad(test *testing.T) {
 		expectErr  bool
 	}{
 		{
+			name:      "Bad inputURL - JSONL filename",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "file:///bad.jsonl",
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
+			name:      "Bad inputURL - GZIP filename",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "file:///bad.jsonl.gz",
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
+			name:      "Bad inputURL - unknown file extension",
+			expectErr: true,
+			testObject: &move.BasicMove{
+				InputURL:   "file:///extension.bad",
+				JSONOutput: true,
+				LogLevel:   "WARN",
+				OutputURL:  "null://",
+			},
+		},
+		{
 			name:      "Bad InputURL - bad schema",
 			expectErr: true,
 			testObject: &move.BasicMove{
@@ -72,7 +102,7 @@ func TestBasicMove_Move_Input_Bad(test *testing.T) {
 			},
 		},
 		{
-			name:      "Bad InputURL - short URL",
+			name:      "Bad InputURL - URL too short",
 			expectErr: true,
 			testObject: &move.BasicMove{
 				InputURL:   "/",
@@ -102,17 +132,18 @@ func TestBasicMove_Move_Input_Bad(test *testing.T) {
 			},
 		},
 		{
-			name:      "Bad File extension",
+			name:      "Bad InputURL - bad file extension",
 			expectErr: true,
 			testObject: &move.BasicMove{
 				InputURL:   "file://extension.bad",
 				JSONOutput: true,
-				LogLevel:   "BAD_LOG_LEVEL",
+				LogLevel:   "WARN",
 				OutputURL:  "null://",
 			},
 		},
 		{
-			name: "Bad Min/Max",
+			name:      "Bad RecordMin/RecordMax",
+			expectErr: true,
 			testObject: &move.BasicMove{
 				InputURL:   "file://" + testFilename(test, testdataJSONLGoodData),
 				JSONOutput: true,
@@ -153,20 +184,39 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 			},
 		},
 		{
+			name: "Read JSONL file - monitoring every 3",
+			testObject: &move.BasicMove{
+				InputURL:      "file://" + testFilename(test, testdataJSONLGoodData),
+				JSONOutput:    true,
+				LogLevel:      "WARN",
+				RecordMonitor: 3,
+				OutputURL:     "null://",
+			},
+		},
+		{
 			name: "Read JSONL file - write JSONL to file",
 			testObject: &move.BasicMove{
 				InputURL:   "file://" + testFilename(test, testdataJSONLGoodData),
 				JSONOutput: true,
-				LogLevel:   "DEBUG",
+				LogLevel:   "WARN",
 				OutputURL:  "file://" + test.TempDir() + "/output.jsonl",
 			},
 		},
+		// {
+		// 	name: "Read JSONL file - write to bad file extension",
+		// 	testObject: &move.BasicMove{
+		// 		InputURL:   "file://" + testFilename(test, testdataJSONLGoodData),
+		// 		JSONOutput: true,
+		// 		LogLevel:   "DEBUG",
+		// 		OutputURL:  "file://" + test.TempDir() + "/output.bad",
+		// 	},
+		// },
 		{
 			name: "Read JSONL file - write GZIP to file",
 			testObject: &move.BasicMove{
 				InputURL:   "file://" + testFilename(test, testdataJSONLGoodData),
 				JSONOutput: true,
-				LogLevel:   "DEBUG",
+				LogLevel:   "WARN",
 				OutputURL:  "file://" + test.TempDir() + "/output.jsonl.gz",
 			},
 		},
@@ -179,7 +229,7 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 			},
 		},
 		{
-			name: "Read JSONL file - Min/Max",
+			name: "Read JSONL file - RecordMin/RecordMax",
 			testObject: &move.BasicMove{
 				InputURL:   "file://" + testFilename(test, testdataJSONLGoodData),
 				JSONOutput: true,
@@ -253,36 +303,6 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 				InputURL:   "file://" + testFilename(test, testdataTxtGZIPBadData),
 				JSONOutput: true,
 				LogLevel:   "ERROR",
-				OutputURL:  "null://",
-			},
-		},
-		{
-			name:      "Bad inputURL - JSONL filename",
-			expectErr: true,
-			testObject: &move.BasicMove{
-				InputURL:   "file:///bad.jsonl",
-				JSONOutput: true,
-				LogLevel:   "WARN",
-				OutputURL:  "null://",
-			},
-		},
-		{
-			name:      "Bad inputURL - GZIP filename",
-			expectErr: true,
-			testObject: &move.BasicMove{
-				InputURL:   "file:///bad.jsonl.gz",
-				JSONOutput: true,
-				LogLevel:   "WARN",
-				OutputURL:  "null://",
-			},
-		},
-		{
-			name:      "Bad inputURL - unknown file extension",
-			expectErr: true,
-			testObject: &move.BasicMove{
-				InputURL:   "file:///extension.bad",
-				JSONOutput: true,
-				LogLevel:   "WARN",
 				OutputURL:  "null://",
 			},
 		},
@@ -427,6 +447,29 @@ func TestBasicMove_Move_Input_HTTP(test *testing.T) {
 // 	require.NoError(test, err)
 
 // }
+
+func TestBasicMove_Move_Compare_Files(test *testing.T) {
+
+	inputFile := testFilename(test, testdataJSONLGoodData)
+	outputFile := test.TempDir() + "/output.jsonl"
+	testObject := &move.BasicMove{
+		InputURL:   "file://" + inputFile,
+		JSONOutput: true,
+		LogLevel:   "WARN",
+		OutputURL:  "file://" + outputFile,
+	}
+
+	err := testObject.Move(test.Context())
+	require.NoError(test, err)
+
+	expected, err := os.ReadFile(inputFile)
+	require.NoError(test, err)
+
+	actual, err := os.ReadFile(outputFile)
+	require.NoError(test, err)
+
+	require.Equal(test, expected, actual)
+}
 
 func TestBasicMove_SzRecord(test *testing.T) {
 	const (

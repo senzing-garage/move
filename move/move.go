@@ -62,9 +62,9 @@ var _ Move = (*BasicMove)(nil)
 // -- Public methods
 // ----------------------------------------------------------------------------
 
-func (move *BasicMove) Logger() logging.Logging {
-	return move.logger
-}
+// func (move *BasicMove) Loggerx() logging.Logging {
+// 	return move.logger
+// }
 
 // move records from one place to another.  validates each record as they are
 // read and only moves valid records.  typically used to move records from
@@ -81,6 +81,11 @@ func (move *BasicMove) Move(ctx context.Context) error {
 		if err != nil {
 			return wraperror.Errorf(err, "SetLogLevel")
 		}
+	}
+
+	if move.RecordMin > move.RecordMax {
+		move.log(5040, move.RecordMin, move.RecordMax)
+		return wraperror.Errorf(packageErr, "RecordMin (%d) > RecordMax (%d)", move.RecordMin, move.RecordMax)
 	}
 
 	move.log(1001, move.InputURL, move.OutputURL, move.FileType, move.RecordMin, move.RecordMax)
@@ -159,7 +164,8 @@ func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) err
 	// Verify value of logLevelName.
 
 	if !logging.IsValidLogLevelName(logLevelName) {
-		return wraperror.Errorf(errForPackage, "invalid error level: %s", logLevelName)
+		move.log(5060, logLevelName)
+		return wraperror.Errorf(packageErr, "invalid error level: %s", logLevelName)
 	}
 
 	// Set ValidateImpl log level.
@@ -193,14 +199,16 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 
 	// This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
-	if len(inputURL) < len("s://p") {
-		move.log(5000, inputURL)
+	// if len(inputURL) < len("s://p") {
+	// 	move.log(5000, inputURL)
 
-		return wraperror.Errorf(errForPackage, "check the inputURL parameter: %s", inputURL)
-	}
+	// 	return wraperror.Errorf(errForPackage, "invalid SENZING_TOOLS_INPUT_URL: %s", inputURL)
+	// }
 
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
+		move.log(5001, inputURL)
+
 		return wraperror.Errorf(err, "url.Parse")
 	}
 
@@ -210,7 +218,8 @@ func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) 
 	case "http", "https":
 		err = move.readHTTP(ctx, parsedURL, recordchan)
 	default:
-		return wraperror.Errorf(errForPackage, "cannot handle input URL: %s", parsedURL.Scheme)
+		move.log(5002, inputURL, parsedURL.Scheme)
+		return wraperror.Errorf(packageErr, "cannot handle input URL: %s", parsedURL.Scheme)
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
@@ -229,9 +238,9 @@ func (move *BasicMove) readFile(ctx context.Context, parsedURL *url.URL, recordc
 	default:
 		// IMPROVE: process JSON file?
 		close(recordchan)
-		move.log(5011)
+		move.log(5003, "file://"+parsedURL.Path)
 
-		err = wraperror.Errorf(errForPackage, "unable to process file://%s", parsedURL.Path)
+		err = wraperror.Errorf(packageErr, "unable to process file://%s", parsedURL.Path)
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
@@ -250,9 +259,9 @@ func (move *BasicMove) readHTTP(ctx context.Context, parsedURL *url.URL, recordc
 	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == FiletypeGZ:
 		err = move.readHTTPofGZIP(inputURL, recordchan)
 	default:
-		move.log(5012)
+		move.log(5004, "http://"+parsedURL.Path)
 
-		return wraperror.Errorf(errForPackage, "unable to process http://%s", parsedURL.Path)
+		return wraperror.Errorf(packageErr, "unable to process http://%s", parsedURL.Path)
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
@@ -268,6 +277,7 @@ func (move *BasicMove) readFileOfGZIP(gzipFileName string, recordchan chan queue
 
 	gzipfile, err := os.Open(cleanGzipFileName)
 	if err != nil {
+		move.log(5005, cleanGzipFileName)
 		return wraperror.Errorf(err, "os.Open")
 	}
 
@@ -290,6 +300,8 @@ func (move *BasicMove) readFileOfJSONL(jsonFile string, recordchan chan queues.R
 
 	file, err := os.Open(cleanJSONFile)
 	if err != nil {
+		move.log(5006, cleanJSONFile)
+
 		return wraperror.Errorf(err, "os.Open")
 	}
 
@@ -304,11 +316,14 @@ func (move *BasicMove) readHTTPofGZIP(gzipURL string, recordchan chan queues.Rec
 	//nolint:noctx
 	response, err := http.Get(gzipURL) //nolint:gosec
 	if err != nil {
-		return wraperror.Errorf(err, "fatal error retrieving inputURL: %s", gzipURL)
+		move.log(5007, gzipURL)
+		return wraperror.Errorf(err, "error retrieving inputURL: %s", gzipURL)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", gzipURL, response.StatusCode)
+		move.log(5008, gzipURL, response.StatusCode)
+
+		return wraperror.Errorf(packageErr, "unable to retrieve: %s, return code: %d", gzipURL, response.StatusCode)
 	}
 
 	defer response.Body.Close()
@@ -330,11 +345,15 @@ func (move *BasicMove) readHTTPofJSONL(jsonURL string, recordchan chan queues.Re
 	//nolint:noctx
 	response, err := http.Get(jsonURL) //nolint:gosec
 	if err != nil {
+		move.log(5009, jsonURL)
+
 		return wraperror.Errorf(err, "http.Get")
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", jsonURL, response.StatusCode)
+		move.log(5010, jsonURL, response.StatusCode)
+
+		return wraperror.Errorf(packageErr, "unable to retrieve: %s, return code: %d", jsonURL, response.StatusCode)
 	}
 
 	defer response.Body.Close()
@@ -347,7 +366,8 @@ func (move *BasicMove) readHTTPofJSONL(jsonURL string, recordchan chan queues.Re
 func (move *BasicMove) readStdin(recordchan chan queues.Record) error {
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		return wraperror.Errorf(err, "fatal error reading stdin")
+		move.log(5050)
+		return wraperror.Errorf(err, "error reading stdin")
 	}
 	// printFileInfo(info)
 
@@ -380,11 +400,16 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 	// This assumes the URL includes a schema and path so, minimally:
 	//  "s://p" where the schema is 's' and 'p' is the complete path
 	if len(outputURL) < len("s://p") {
-		return wraperror.Errorf(errForPackage, "invalid outputURL: %s", outputURL)
+
+		move.log(5030, outputURL)
+
+		return wraperror.Errorf(packageErr, "invalid outputURL: %s", outputURL)
 	}
 
 	parsedURL, err := url.Parse(outputURL)
 	if err != nil {
+		move.log(5031, outputURL)
+
 		return wraperror.Errorf(err, "invalid outputURL: %s", outputURL)
 	}
 
@@ -403,7 +428,7 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 		// eg  sqs://lookup?queue-name=myqueue
 		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
 	default:
-		return wraperror.Errorf(errForPackage, "unknown scheme, unable to write to: %s", outputURL)
+		return wraperror.Errorf(packageErr, "unknown scheme, unable to write to: %s", outputURL)
 	}
 
 	move.log(2000)
@@ -422,8 +447,10 @@ func (move *BasicMove) writeFile(ctx context.Context, parsedURL *url.URL, record
 	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
 		err = move.writeFileOfGZIP(parsedURL.Path, recordchan)
 	default:
+
+		fmt.Printf(">>>>>> writeFile default\n")
 		// IMPROVE: process JSON file?
-		err = wraperror.Errorf(errForPackage, "only able to process JSON-Lines files at this time")
+		err = wraperror.Errorf(packageErr, "only able to process JSON-Lines files at this time")
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
@@ -436,20 +463,24 @@ func (move *BasicMove) writeFile(ctx context.Context, parsedURL *url.URL, record
 func (move *BasicMove) writeFileOfGZIP(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { // file exists
-		return wraperror.Errorf(errForPackage, "error output file %s exists", fileName)
+		return wraperror.Errorf(packageErr, "output file %s already exists", fileName)
 	}
 
 	fileName = filepath.Clean(fileName)
+
 	file, err := os.Create(fileName)
+	if err != nil {
+		move.log(5032, fileName)
+
+		return wraperror.Errorf(err, "fatal error opening %s", fileName)
+	}
 
 	defer func() {
 		err := file.Close()
-		move.log(3001, fileName, err)
+		if err != nil {
+			move.log(3001, fileName, err)
+		}
 	}()
-
-	if err != nil {
-		return wraperror.Errorf(err, "fatal error opening %s", fileName)
-	}
 
 	_, err = file.Stat()
 	if err != nil {
@@ -478,23 +509,28 @@ func (move *BasicMove) writeFileOfGZIP(fileName string, recordchan chan queues.R
 func (move *BasicMove) writeFileOfJSONL(fileName string, recordchan chan queues.Record) error {
 	_, err := os.Stat(fileName)
 	if err == nil { // file exists
-		return wraperror.Errorf(errForPackage, "error output file %s exists", fileName)
+		move.log(5032, fileName)
+
+		return wraperror.Errorf(packageErr, "output file %s already exists", fileName)
 	}
 
 	fileName = filepath.Clean(fileName)
+
 	file, err := os.Create(fileName)
-
-	defer func() {
-		err := file.Close()
-		move.log(3001, fileName, err)
-	}()
-
 	if err != nil {
 		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			move.log(3001, fileName, err)
+		}
+	}()
+
 	_, err = file.Stat()
 	if err != nil {
+		move.log(5033, fileName)
 		return wraperror.Errorf(err, "fatal error opening %s", fileName)
 	}
 
@@ -525,7 +561,8 @@ func (move *BasicMove) writeNull(recordchan chan queues.Record) error {
 func (move *BasicMove) writeStdout(recordchan chan queues.Record) error {
 	_, err := os.Stdout.Stat()
 	if err != nil {
-		return wraperror.Errorf(err, "fatal error opening stdout")
+		move.log(5051)
+		return wraperror.Errorf(err, "error opening stdout")
 	}
 
 	writer := bufio.NewWriter(os.Stdout)

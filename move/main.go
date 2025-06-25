@@ -55,9 +55,25 @@ var IDMessages = map[int]string{
 
 	// FATAL 	5000-5999 	The process needs to shutdown.
 
-	5000: Prefix + "Fatal error, Check the input-url parameter: %s",
-	5011: Prefix + "If this is a valid JSONL file, please rename with the .jsonl extension or use the file type override (--file-type).",
-	5012: Prefix + "If this is a valid JSONL resource, please rename with the .jsonl extension or use the file type override (--file-type).",
+	5000: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s.",
+	5001: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s.",
+	5002: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Bad protocol: %s. Only file, http, and https protocols supported.",
+	5003: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Only .jsonl and .gz file extensions supported, unless specified by the file type override (SENZING_TOOLS_INPUT_FILE_TYPE).",
+	5004: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Only .jsonl and .gz file extensions supported, unless specified by the file type override (SENZING_TOOLS_INPUT_FILE_TYPE).",
+	5005: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Unable to open gzip file.",
+	5006: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Unable to open jsonl file.",
+	5007: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Unable to HTTP GET for gzip.",
+	5008: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Status code: %d for HTTP GET of gzip file.",
+	5009: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Unable to HTTP GET for jsonl.",
+	5010: Prefix + "Invalid SENZING_TOOLS_INPUT_URL: %s. Status code: %d for HTTP GET of jsonl file.",
+	5030: Prefix + "Invalid SENZING_TOOLS_OUTPUT_URL: %s.",
+	5031: Prefix + "Invalid SENZING_TOOLS_OUTPUT_URL: %s.",
+	5032: Prefix + "Invalid SENZING_TOOLS_OUTPUT_URL: %s. Unable to create file.",
+	5033: Prefix + "Invalid SENZING_TOOLS_OUTPUT_URL. %s. File already exists.",
+	5040: Prefix + "SENZING_TOOLS_RECORD_MIN (%d) was larger than SENZING_TOOLS_RECORD_MAX (%d).",
+	5050: Prefix + "Unable to read from STDIN.",
+	5051: Prefix + "Unable to write to STDOUT.",
+	5060: Prefix + "Invalid SENZING_TOOLS_LOG_LEVEL: %s. Valid values: TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.",
 
 	// PANIC 	6000-6999 	The underlying system is at issue.
 	//			8000-8999 	Reserved for observer messages.
@@ -66,4 +82,4 @@ var IDMessages = map[int]string{
 // Status strings for specific messages.
 var IDStatuses = map[int]string{}
 
-var errForPackage = errors.New("move")
+var packageErr = errors.New("move")
