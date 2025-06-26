@@ -28,7 +28,7 @@ const Prefix = "move: "
 // Variables
 // ----------------------------------------------------------------------------
 
-// Error level ranges and usage:
+// Error level ranges and usage.
 var IDMessages = map[int]string{
 	// Level 	Range 		Use 							Comments.
 	// TRACE 	0000-0999 	Entry/Exit tracing 				May contain sensitive data.
@@ -37,13 +37,13 @@ var IDMessages = map[int]string{
 
 	1000: Prefix + "Drained %v",
 	1001: Prefix + "InputURL: %s; OutputURL: %s; FileType: %s; RecordMin: %d; RecordMax: %d",
+	1002: Prefix + "GoVersion: %s, Path: %s, Main.Path: %s, Main.Version: %s",
+	1003: Prefix + "CPUs: %d, Go routines: %d, CGO calls: %d, Num GC: %d, GC pause total: %v, LastGC: %v, TotalAlloc: %d, HeapAlloc: %d, NextGC: %d, GCSys: %d, HeapSys: %d, StackSys: %d, Sys - total OS bytes: %d, CPU fraction used by GC: %f",
 
 	// INFO 	2000-2999 	Process steps achieved.
 
 	2000: Prefix + "So long and thanks for all the fish.",
 	2001: Prefix + "Records sent to queue: %d",
-	2002: Prefix + "GoVersion: %s, Path: %s, Main.Path: %s, Main.Version: %s",
-	2003: Prefix + "CPUs: %d, Go routines: %d, CGO calls: %d, Num GC: %d, GC pause total: %v, LastGC: %v, TotalAlloc: %d, HeapAlloc: %d, NextGC: %d, GCSys: %d, HeapSys: %d, StackSys: %d, Sys - total OS bytes: %d, CPU fraction used by GC: %f",
 
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful.
 
@@ -82,4 +82,4 @@ var IDMessages = map[int]string{
 // Status strings for specific messages.
 var IDStatuses = map[int]string{}
 
-var packageErr = errors.New("move")
+var errForPackage = errors.New("move")

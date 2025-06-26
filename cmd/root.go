@@ -4,7 +4,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/senzing-garage/go-cmdhelping/cmdhelper"
 	"github.com/senzing-garage/go-cmdhelping/option"
 	"github.com/senzing-garage/go-helpers/wraperror"
+	"github.com/senzing-garage/move/cmdobserver"
 	"github.com/senzing-garage/move/move"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,7 +31,10 @@ const (
 `
 )
 
-var packageErr = errors.New("move")
+const (
+	secondsPerMinute int64 = 60
+	secondsPerHour   int64 = secondsPerMinute * 60
+)
 
 // ----------------------------------------------------------------------------
 // Context variables
@@ -87,31 +90,11 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 
 // Used in construction of cobra.Command.
 func RunE(_ *cobra.Command, _ []string) error {
-
-	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
-	if !jsonOutput {
-		outputln("Run with the following parameters:")
-
-		for _, key := range viper.AllKeys() {
-			outputln("  - ", key, " = ", viper.Get(key))
-		}
-	}
-
-	delayInSeconds := viper.GetInt(option.DelayInSeconds.Arg)
-	if delayInSeconds > 0 {
-		if !jsonOutput {
-			outputln(
-				time.Now(),
-				"Sleep for",
-				delayInSeconds,
-				"seconds to let queues and databases settle down and come up.",
-			)
-		}
-
-		time.Sleep(time.Duration(delayInSeconds) * time.Second)
-	}
-
+	var err error
 	ctx := context.Background()
+
+	printIntroduction()
+	delay()
 
 	mover := &move.BasicMove{
 		FileType:                  viper.GetString(option.InputFileType.Arg),
@@ -125,7 +108,23 @@ func RunE(_ *cobra.Command, _ []string) error {
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
 	}
 
-	err := mover.Move(ctx)
+	anObserver := cmdobserver.CmdObserver{
+		ID: "move",
+	}
+
+	err = mover.RegisterObserver(ctx, &anObserver)
+	if err != nil {
+		return wraperror.Errorf(err, "RegisterObserver")
+	}
+
+	startTime := time.Now()
+
+	err = mover.Move(ctx)
+	if err != nil {
+		return wraperror.Errorf(err, "Move")
+	}
+
+	printSummary(startTime, &anObserver)
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -139,9 +138,90 @@ func Version() string {
 // Private functions
 // ----------------------------------------------------------------------------
 
+func delay() {
+	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
+	delayInSeconds := viper.GetInt(option.DelayInSeconds.Arg)
+	if delayInSeconds > 0 {
+		if !jsonOutput {
+			outputln(
+				time.Now(),
+				"Sleep for",
+				delayInSeconds,
+				"seconds to let queues and databases settle down and come up.",
+			)
+		}
+
+		time.Sleep(time.Duration(delayInSeconds) * time.Second)
+	}
+}
+
 // Since init() is always invoked, define command line parameters.
 func init() {
 	cmdhelper.Init(RootCmd, ContextVariables)
+}
+
+func printIntroduction() {
+	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
+	if !jsonOutput {
+		outputln("Run with the following parameters:")
+
+		for _, key := range viper.AllKeys() {
+			outputln("  - ", key, " = ", viper.Get(key))
+		}
+	}
+}
+
+func printSummary(startTime time.Time, anObserver *cmdobserver.CmdObserver) {
+	var totalWrite int64
+
+	outputln("Data sources:")
+
+	for x, y := range anObserver.GetDataSourceCodes() {
+		totalWrite += y
+		outputf("%12d: %s\n", y, x)
+	}
+
+	outputln("-------------------")
+	outputf("%12d: Total\n", anObserver.GetTotalRead())
+
+	if totalWrite != anObserver.GetTotalRead() {
+		outputf("Error in read vs. write counts. (%d vs. %d)\n", anObserver.GetTotalRead(), totalWrite)
+	}
+
+	// Calculate duration.
+
+	printTime(startTime, anObserver.GetLastUpdateTime())
+}
+
+func printTime(startTime time.Time, stopTime time.Time) {
+	duration := stopTime.Sub(startTime)
+	outputf("Duration: %f seconds", duration.Seconds())
+
+	seconds := int64(duration.Seconds())
+	if seconds > 0 {
+		hours := seconds / secondsPerHour
+		seconds %= secondsPerHour
+		minutes := seconds / secondsPerMinute
+		seconds %= secondsPerMinute
+
+		outputf(" (")
+
+		if hours > 0 {
+			outputf("Hours: %d ", hours)
+		}
+
+		if minutes > 0 {
+			outputf("Minutes: %d ", minutes)
+		}
+
+		outputf("Seconds: %d)", seconds)
+	}
+
+	outputf("\n")
+}
+
+func outputf(format string, message ...any) {
+	fmt.Printf(format, message...) //nolint
 }
 
 func outputln(message ...any) {

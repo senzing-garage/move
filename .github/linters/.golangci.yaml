@@ -137,11 +137,14 @@ linters:
               desc: "replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil"
     exhaustruct:
       exclude:
+        - '.+/cmdobserver\.CmdObserver$'
         - '.+/cobra\.Command$'
+        - '.+/http\.Server$'
+        - '.+/move_test\.<anonymous>$'
+        - '.+/move_test\.fields$'
         - '.+/move\.BasicMove$'
         - '.+/move\.fields$'
-        - '.+/http\.Server$'
-        - '.+/move_test\.fields$'
+        - '.+/subject\.SimpleSubject$'
     funlen:
       lines: 140
     ireturn:
@@ -152,6 +155,8 @@ linters:
       ignored-functions:
         - '^logger\.Log$'
         - '^move\.log$'
+        - '^notifier\.Notify$'
+
 formatters:
   enable:
     - gci

@@ -35,7 +35,6 @@ const (
 // ----------------------------------------------------------------------------
 
 func TestBasicMove_Move_Input_Bad(test *testing.T) {
-
 	testCases := []struct {
 		name       string
 		testObject move.Move
@@ -168,7 +167,6 @@ func TestBasicMove_Move_Input_Bad(test *testing.T) {
 }
 
 func TestBasicMove_Move_Input_File(test *testing.T) {
-
 	testCases := []struct {
 		name       string
 		testObject move.Move
@@ -321,9 +319,7 @@ func TestBasicMove_Move_Input_File(test *testing.T) {
 }
 
 func TestBasicMove_Move_Input_HTTP(test *testing.T) {
-
 	// Serve HTTP.
-
 	server, listener, port := serveHTTP(test, testDataDir(test))
 
 	go func() {
@@ -449,7 +445,6 @@ func TestBasicMove_Move_Input_HTTP(test *testing.T) {
 // }
 
 func TestBasicMove_Move_Compare_Files(test *testing.T) {
-
 	inputFile := testFilename(test, testdataJSONLGoodData)
 	outputFile := test.TempDir() + "/output.jsonl"
 	testObject := &move.BasicMove{
@@ -473,20 +468,20 @@ func TestBasicMove_Move_Compare_Files(test *testing.T) {
 
 func TestBasicMove_SzRecord(test *testing.T) {
 	const (
-		body   = "This is the body"
-		ID     = 999
-		source = "This is the source"
+		body     = "This is the body"
+		RecordID = 999
+		source   = "This is the source"
 	)
 
 	testObject := move.SzRecord{
 		Body:   body,
-		ID:     ID,
+		ID:     RecordID,
 		Source: source,
 	}
 
 	require.Equal(test, body, testObject.GetMessage())
 
-	expected := source + "-" + strconv.Itoa(ID)
+	expected := source + "-" + strconv.Itoa(RecordID)
 	require.Equal(test, expected, testObject.GetMessageID())
 }
 
@@ -494,19 +489,25 @@ func TestBasicMove_SzRecord(test *testing.T) {
 // Helper functions
 // ----------------------------------------------------------------------------
 
-func testDataDir(test *testing.T) string {
+func testDataDir(t *testing.T) string {
+	t.Helper()
+
 	absoluteFilePath, err := filepath.Abs("../testdata/")
-	require.NoError(test, err)
+	require.NoError(t, err)
 	_, err = os.Stat(absoluteFilePath)
-	require.NoError(test, err)
+	require.NoError(t, err)
+
 	return absoluteFilePath
 }
 
-func testFilename(test *testing.T, partialFilePath string) string {
+func testFilename(t *testing.T, partialFilePath string) string {
+	t.Helper()
+
 	absoluteFilePath, err := filepath.Abs("../testdata/" + partialFilePath)
-	require.NoError(test, err)
+	require.NoError(t, err)
 	_, err = os.Stat(absoluteFilePath)
-	require.NoError(test, err)
+	require.NoError(t, err)
+
 	return absoluteFilePath
 }
 

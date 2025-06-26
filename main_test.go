@@ -8,7 +8,7 @@ import (
 )
 
 func TestMain(test *testing.T) {
-
+	_ = test
 	os.Args = []string{"command-name", "--help"}
 
 	main()
