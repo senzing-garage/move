@@ -36,14 +36,13 @@ var IDMessages = map[int]string{
 	// DEBUG 	1000-1999 	Values seen during processing 	May contain sensitive data.
 
 	1000: Prefix + "Drained %v",
-	1001: Prefix + "InputURL: %s; OutputURL: %s; FileType: %s; RecordMin: %d; RecordMax: %d",
+	1001: Prefix + "InputURL: %s; OutputURL: %s; FileType: %s; RecordMin: %d; RecordMax: %d; RecordMonitor: %d; MonitoringPeriodInSeconds: %d; LogLevel: %s",
 	1002: Prefix + "GoVersion: %s, Path: %s, Main.Path: %s, Main.Version: %s",
 	1003: Prefix + "CPUs: %d, Go routines: %d, CGO calls: %d, Num GC: %d, GC pause total: %v, LastGC: %v, TotalAlloc: %d, HeapAlloc: %d, NextGC: %d, GCSys: %d, HeapSys: %d, StackSys: %d, Sys - total OS bytes: %d, CPU fraction used by GC: %f",
 
 	// INFO 	2000-2999 	Process steps achieved.
 
-	2000: Prefix + "So long and thanks for all the fish.",
-	2001: Prefix + "Records sent to queue: %d",
+	2001: Prefix + "Lines processed: %d",
 
 	// WARN 	3000-3999 	Unexpected situations, but processing was successful.
 
@@ -77,6 +76,16 @@ var IDMessages = map[int]string{
 
 	// PANIC 	6000-6999 	The underlying system is at issue.
 	//			8000-8999 	Reserved for observer messages.
+}
+
+var messageThresholds = map[string]int{
+	"TRACE": 0,
+	"DEBUG": 1000, //nolint
+	"INFO":  2000, //nolint
+	"WARN":  3000, //nolint
+	"ERROR": 4000, //nolint
+	"FATAL": 5000, //nolint
+	"PANIC": 6000, //nolint
 }
 
 // Status strings for specific messages.

@@ -28,3 +28,12 @@ type ObserverMessage62028002 struct {
 	RecordID       string `json:"recordId"`
 	SubjectID      string `json:"subjectId"`
 }
+
+type ObserverMessage62028003 struct {
+	DataSourceCode string `json:"dataSourceCode"`
+	LineNumber     string `json:"lineNumber"`
+	MessageID      string `json:"messageId"`
+	MessageTime    string `json:"messageTime"`
+	RecordID       string `json:"recordId"`
+	SubjectID      string `json:"subjectId"`
+}

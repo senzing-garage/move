@@ -6,10 +6,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/senzing-garage/go-cmdhelping/cmdhelper"
 	"github.com/senzing-garage/go-cmdhelping/option"
+	"github.com/senzing-garage/go-cmdhelping/option/optiontype"
 	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/move/cmdobserver"
 	"github.com/senzing-garage/move/move"
@@ -34,11 +36,20 @@ const (
 const (
 	secondsPerMinute int64 = 60
 	secondsPerHour   int64 = secondsPerMinute * 60
+	inHalf                 = 2
 )
 
 // ----------------------------------------------------------------------------
 // Context variables
 // ----------------------------------------------------------------------------
+
+var validate = option.ContextVariable{
+	Arg:     "validate",
+	Default: option.OsLookupEnvBool("SENZING_TOOLS_VALIDATE", false),
+	Envar:   "SENZING_TOOLS_VALIDATE",
+	Help:    "Validate records prior to moving [%s]",
+	Type:    optiontype.Bool,
+}
 
 var ContextVariablesForMultiPlatform = []option.ContextVariable{
 	option.DelayInSeconds,
@@ -52,6 +63,7 @@ var ContextVariablesForMultiPlatform = []option.ContextVariable{
 	option.RecordMax,
 	option.RecordMin,
 	option.RecordMonitor,
+	validate,
 }
 
 var ContextVariables = append(ContextVariablesForMultiPlatform, ContextVariablesForOsArch...)
@@ -91,21 +103,22 @@ func PreRun(cobraCommand *cobra.Command, args []string) {
 // Used in construction of cobra.Command.
 func RunE(_ *cobra.Command, _ []string) error {
 	var err error
+
 	ctx := context.Background()
 
-	printIntroduction()
 	delay()
 
 	mover := &move.BasicMove{
 		FileType:                  viper.GetString(option.InputFileType.Arg),
 		InputURL:                  viper.GetString(option.InputURL.Arg),
-		JSONOutput:                viper.GetBool(option.JSONOutput.Arg),
 		LogLevel:                  viper.GetString(option.LogLevel.Arg),
 		MonitoringPeriodInSeconds: viper.GetInt(option.MonitoringPeriodInSeconds.Arg),
 		OutputURL:                 viper.GetString(option.OutputURL.Arg),
+		PlainText:                 true,
 		RecordMax:                 viper.GetInt(option.RecordMax.Arg),
 		RecordMin:                 viper.GetInt(option.RecordMin.Arg),
 		RecordMonitor:             viper.GetInt(option.RecordMonitor.Arg),
+		Validate:                  viper.GetBool(validate.Arg),
 	}
 
 	anObserver := cmdobserver.CmdObserver{
@@ -124,7 +137,7 @@ func RunE(_ *cobra.Command, _ []string) error {
 		return wraperror.Errorf(err, "Move")
 	}
 
-	printSummary(startTime, &anObserver)
+	printExit(startTime, mover, &anObserver)
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -141,6 +154,7 @@ func Version() string {
 func delay() {
 	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
 	delayInSeconds := viper.GetInt(option.DelayInSeconds.Arg)
+
 	if delayInSeconds > 0 {
 		if !jsonOutput {
 			outputln(
@@ -160,42 +174,49 @@ func init() {
 	cmdhelper.Init(RootCmd, ContextVariables)
 }
 
-func printIntroduction() {
-	jsonOutput := viper.GetBool(option.JSONOutput.Arg)
-	if !jsonOutput {
-		outputln("Run with the following parameters:")
-
-		for _, key := range viper.AllKeys() {
-			outputln("  - ", key, " = ", viper.Get(key))
-		}
-	}
-}
-
-func printSummary(startTime time.Time, anObserver *cmdobserver.CmdObserver) {
+func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobserver.CmdObserver) {
 	var totalWrite int64
 
-	outputln("Data sources:")
+	outputf("\nMove complete.\n")
+	outputf("%16d lines read\n", moveit.GetTotalLines())
+	outputf("%16d records moved\n", anObserver.GetTotalRead())
 
-	for x, y := range anObserver.GetDataSourceCodes() {
-		totalWrite += y
-		outputf("%12d: %s\n", y, x)
+	if viper.GetBool(validate.Arg) {
+		printInvalidRecordDefinitions(anObserver.GetInvalidRecordDefinitions())
 	}
 
-	outputln("-------------------")
-	outputf("%12d: Total\n", anObserver.GetTotalRead())
+	outputf("         Target: %s\n", viper.GetString(option.OutputURL.Arg))
+	printTime(startTime, anObserver.GetLastUpdateTime())
+
+	if len(anObserver.GetDataSourceCodes()) > 0 {
+		dataSourceNameLength := 11
+		for dataSourceCode := range anObserver.GetDataSourceCodes() {
+			if len(dataSourceCode) > dataSourceNameLength {
+				dataSourceNameLength = len(dataSourceCode)
+			}
+		}
+
+		outputf("\n      Count%sData source\n", strings.Repeat(" ", dataSourceNameLength/inHalf))
+		outputln("---------------- " + strings.Repeat("-", dataSourceNameLength))
+
+		for x, y := range anObserver.GetDataSourceCodes() {
+			totalWrite += y
+			outputf("%16d %s\n", y, x)
+		}
+	}
 
 	if totalWrite != anObserver.GetTotalRead() {
-		outputf("Error in read vs. write counts. (%d vs. %d)\n", anObserver.GetTotalRead(), totalWrite)
+		outputf(
+			"Error: Discrepency between read and write counts. (%d vs. %d)\n",
+			anObserver.GetTotalRead(),
+			totalWrite,
+		)
 	}
-
-	// Calculate duration.
-
-	printTime(startTime, anObserver.GetLastUpdateTime())
 }
 
 func printTime(startTime time.Time, stopTime time.Time) {
 	duration := stopTime.Sub(startTime)
-	outputf("Duration: %f seconds", duration.Seconds())
+	outputf("       Duration: %f seconds", duration.Seconds())
 
 	seconds := int64(duration.Seconds())
 	if seconds > 0 {
@@ -218,6 +239,10 @@ func printTime(startTime time.Time, stopTime time.Time) {
 	}
 
 	outputf("\n")
+}
+
+func printInvalidRecordDefinitions(invalidRecordDefinitions []int64) {
+	outputf("%16d invalid records\n", len(invalidRecordDefinitions))
 }
 
 func outputf(format string, message ...any) {

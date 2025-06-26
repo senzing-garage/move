@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,16 +40,18 @@ type Error struct {
 type BasicMove struct {
 	FileType                  string
 	InputURL                  string
-	JSONOutput                bool
+	lineNumber                int
 	logger                    logging.Logging
 	LogLevel                  string
 	MonitoringPeriodInSeconds int
 	observerOrigin            string
 	observers                 subject.Subject
 	OutputURL                 string
+	PlainText                 bool
 	RecordMax                 int
 	RecordMin                 int
 	RecordMonitor             int
+	Validate                  bool
 	waitGroup                 sync.WaitGroup
 }
 
@@ -63,6 +66,8 @@ const (
 
 // Check at compile time that the implementation adheres to the interface.
 var _ Move = (*BasicMove)(nil)
+
+var lock sync.Mutex
 
 // ----------------------------------------------------------------------------
 // -- Public methods
@@ -96,9 +101,7 @@ func (move *BasicMove) Move(ctx context.Context) error {
 	}
 
 	// FIXME: Move to "cmd" package, so that other applications don't have output.
-	move.log(1001, move.InputURL, move.OutputURL, move.FileType, move.RecordMin, move.RecordMax)
-	move.logBuildInfo()
-	move.logStats()
+	move.logEntry()
 
 	if move.MonitoringPeriodInSeconds <= 0 {
 		move.MonitoringPeriodInSeconds = 60
@@ -154,6 +157,8 @@ func (move *BasicMove) Move(ctx context.Context) error {
 	if writeErr != nil {
 		return wraperror.Errorf(writeErr, "Write error")
 	}
+
+	move.logExit()
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -243,6 +248,10 @@ func (move *BasicMove) UnregisterObserver(ctx context.Context, observer observer
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+func (move *BasicMove) GetTotalLines() int {
+	return move.lineNumber
 }
 
 // ----------------------------------------------------------------------------
@@ -485,23 +494,21 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 
 	switch parsedURL.Scheme {
 	case "amqp":
-		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
+		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
 	case "file":
 		err = move.writeFile(ctx, parsedURL, recordchan)
 	case "https":
 		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
+		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
 	case "null":
 		move.writeNull(ctx, recordchan)
 	case "sqs":
 		// allows for using a dummy URL with just a queue-name
 		// eg  sqs://lookup?queue-name=myqueue
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.JSONOutput)
+		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
 	default:
 		return wraperror.Errorf(errForPackage, "unknown scheme, unable to write to: %s", outputURL)
 	}
-
-	move.log(2000)
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -681,38 +688,69 @@ func (move *BasicMove) processJSONL(
 	reader io.Reader,
 	recordchan chan queues.Record,
 ) {
+	var err error
+
 	_ = ctx
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 
-	iteration := 0
+	move.lineNumber = 0
 	for scanner.Scan() {
-		iteration++
-		if iteration < move.RecordMin {
+		move.lineNumber++
+		if move.lineNumber < move.RecordMin {
 			continue
 		}
 
 		recordDefinition := strings.TrimSpace(scanner.Text())
-		// ignore blank lines
-		if len(recordDefinition) > 0 {
-			move.observeRead(ctx, recordDefinition)
-			// valid, err := record.Validate(recordDefinition)
-			//
-			//	if valid {
-			//		move.observeRead(ctx, recordDefinition)
-			//		recordchan <- &SzRecord{recordDefinition, iteration, fileName}
-			//	} else {
-			//
-			//		move.log(3010, iteration, err)
-			//	}
-			recordchan <- &SzRecord{recordDefinition, iteration, fileName}
+
+		if len(recordDefinition) > 0 { // ignore blank lines
+			valid := true
+			if move.Validate {
+				valid, err = record.Validate(recordDefinition)
+				if err != nil || !valid {
+					valid = false
+
+					move.log(3010, move.lineNumber, err)
+
+					if move.observers != nil {
+						var (
+							aRecord        record.Record
+							dataSourceCode string
+							recordID       string
+						)
+
+						validUnmarshal := json.Unmarshal([]byte(recordDefinition), &aRecord) == nil
+						if validUnmarshal {
+							dataSourceCode = aRecord.DataSource
+							recordID = aRecord.ID
+						}
+
+						move.waitGroup.Add(1)
+
+						go func() {
+							defer move.waitGroup.Done()
+							details := map[string]string{
+								"dataSourceCode": dataSourceCode,
+								"lineNumber":     strconv.Itoa(move.lineNumber),
+								"recordId":       recordID,
+							}
+							notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8003, err, details)
+						}()
+					}
+				}
+			}
+
+			if valid {
+				move.observeRead(ctx, recordDefinition)
+				recordchan <- &SzRecord{recordDefinition, move.lineNumber, fileName}
+			}
 		}
 
-		if (move.RecordMonitor > 0) && (iteration%move.RecordMonitor == 0) {
-			move.log(2001, iteration)
+		if (move.RecordMonitor > 0) && (move.lineNumber%move.RecordMonitor == 0) {
+			move.log(2001, move.lineNumber)
 		}
 
-		if move.RecordMax > 0 && iteration >= (move.RecordMax) {
+		if move.RecordMax > 0 && move.lineNumber >= (move.RecordMax) {
 			break
 		}
 	}
@@ -803,12 +841,25 @@ func (move *BasicMove) getLogger() logging.Logging {
 	return move.logger
 }
 
+func (move *BasicMove) isLoggable(messageNumber int) bool {
+	logThreshold, ok := messageThresholds[move.getLogger().GetLogLevel()]
+	if ok {
+		if messageNumber >= logThreshold {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Log message.
 func (move *BasicMove) log(messageNumber int, details ...interface{}) {
-	if move.JSONOutput {
-		move.getLogger().Log(messageNumber, details...)
+	if move.PlainText {
+		if move.isLoggable(messageNumber) {
+			outputln(fmt.Sprintf(IDMessages[messageNumber], details...))
+		}
 	} else {
-		outputln(fmt.Sprintf(IDMessages[messageNumber], details...))
+		move.getLogger().Log(messageNumber, details...)
 	}
 }
 
@@ -821,28 +872,39 @@ func (move *BasicMove) logBuildInfo() {
 	}
 }
 
-var lock sync.Mutex
+func (move *BasicMove) logEntry() {
+	move.log(
+		1001,
+		move.InputURL,
+		move.OutputURL,
+		move.FileType,
+		move.RecordMin,
+		move.RecordMax,
+		move.RecordMonitor,
+		move.MonitoringPeriodInSeconds,
+		move.LogLevel,
+	)
+	move.logBuildInfo()
+	move.logStats()
+}
+
+func (move *BasicMove) logExit() {}
 
 func (move *BasicMove) logStats() {
-	lock.Lock()
-	defer lock.Unlock()
-
-	cpus := runtime.NumCPU()
-	goRoutines := runtime.NumGoroutine()
-	cgoCalls := runtime.NumCgoCall()
-
 	var memStats runtime.MemStats
-
-	runtime.ReadMemStats(&memStats)
 
 	var gcStats debug.GCStats
 
+	lock.Lock()
+	defer lock.Unlock()
+
+	runtime.ReadMemStats(&memStats)
 	debug.ReadGCStats(&gcStats)
 	move.log(
 		1003,
-		cpus,
-		goRoutines,
-		cgoCalls,
+		runtime.NumCPU(),
+		runtime.NumGoroutine(),
+		runtime.NumCgoCall(),
 		memStats.NumGC,
 		gcStats.PauseTotal,
 		gcStats.LastGC,
