@@ -179,6 +179,8 @@ func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobser
 	var totalWrite int64
 
 	outputf("\nMove complete.\n")
+	outputf("          Input: %s\n", viper.GetString(option.InputURL.Arg))
+	outputf("         Output: %s\n", viper.GetString(option.OutputURL.Arg))
 	outputf("%16d lines read\n", moveit.GetTotalLines())
 	outputf("%16d records moved\n", anObserver.GetTotalRead())
 
@@ -186,7 +188,6 @@ func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobser
 		printInvalidRecordDefinitionCount(anObserver.GetInvalidRecordDefinitions())
 	}
 
-	outputf("         Target: %s\n", viper.GetString(option.OutputURL.Arg))
 	printTime(startTime, anObserver.GetLastUpdateTime())
 
 	if len(anObserver.GetDataSourceCodes()) > 0 {
