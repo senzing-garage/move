@@ -27,6 +27,7 @@ import (
 	"github.com/senzing-garage/go-queueing/queues"
 	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
 	"github.com/senzing-garage/go-queueing/queues/sqs"
+	"github.com/senzing-garage/move/recordreader"
 )
 
 // ----------------------------------------------------------------------------
@@ -55,6 +56,7 @@ type BasicMove struct {
 	RecordMonitor             int
 	Validate                  bool
 	waitGroup                 sync.WaitGroup
+	recordChannel             chan queues.Record
 }
 
 const (
@@ -127,9 +129,9 @@ func (move *BasicMove) Move(ctx context.Context) error {
 		}
 	}()
 
-	// var waitGroup sync.WaitGroup
-
 	recordchan := make(chan queues.Record, numChannels)
+
+	theReader, err := move.getReader(ctx, recordchan)
 
 	move.waitGroup.Add(1)
 
@@ -259,6 +261,36 @@ func (move *BasicMove) UnregisterObserver(ctx context.Context, observer observer
 
 func (move *BasicMove) GetTotalLines() int {
 	return move.lineNumber
+}
+
+// ----------------------------------------------------------------------------
+// Reader factory
+// ----------------------------------------------------------------------------
+
+func (move *BasicMove) getReader(
+	ctx context.Context,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
+
+	inputURL := move.InputURL
+	inputURLLen := len(inputURL)
+
+	if inputURLLen == 0 { // assume stdin for zero-length URL.
+		reader := &recordreader.StdinJsonlReader{
+			ObserverOrigin: move.observerOrigin,
+			Observers:      move.observers,
+			RecordChannel:  recordChannel,
+			RecordMax:      move.RecordMax,
+			RecordMin:      move.RecordMin,
+			RecordMonitor:  move.RecordMonitor,
+			Validate:       move.Validate,
+			waitGroup:      &move.waitGroup,
+		}
+		return reader, nil
+	}
+
+	return nil, nil
+
 }
 
 // ----------------------------------------------------------------------------
@@ -501,7 +533,7 @@ func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record)
 
 	switch parsedURL.Scheme {
 	case "amqp":
-		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
+		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, !move.PlainText)
 	case "file":
 		err = move.writeFile(ctx, parsedURL, recordchan)
 	case "https":
@@ -725,6 +757,7 @@ func (move *BasicMove) processJSONL(
 			}
 
 			if valid {
+				fmt.Printf(">>>>> push to recordchan\n")
 				move.observeRead(ctx, recordDefinition)
 				recordchan <- &SzRecord{recordDefinition, lineNumber, fileName}
 			}

@@ -1,6 +1,24 @@
-version: '3'
+version: "3"
+
 services:
-  sut:
-    build: .
-    entrypoint: [""]
-    command: ["/app/container-test.sh"]
+
+  rabbitmq:
+    container_name: senzing-rabbitmq
+    # environment:
+      # See https://github.com/bitnami/bitnami-docker-rabbitmq#configuration
+      # See https://hub.docker.com/_/rabbitmq
+    hostname: my-rabbitmq
+    image: rabbitmq:${SENZING_DOCKER_IMAGE_VERSION_RABBITMQ:-management}
+    networks:
+      - senzing
+    ports:
+      - 5672:5672
+      - 15671:15671
+      - 15672:15672
+    restart: always
+    volumes:
+      - ${RABBITMQ_DIR:-/var/rabbitmq}:/bitnami
+
+networks:
+  senzing:
+    name: ${SENZING_DOCKER_NETWORK:-senzing-network}

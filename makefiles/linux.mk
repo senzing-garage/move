@@ -64,7 +64,7 @@ run-osarch-specific:
 
 .PHONY: setup-osarch-specific
 setup-osarch-specific:
-	$(info No setup required.)
+	docker-compose -f docker-compose.test.yaml up --detach
 
 
 .PHONY: test-osarch-specific

@@ -18,7 +18,7 @@ type Move interface {
 // Constants
 // ----------------------------------------------------------------------------
 
-// move is 6202:  https://github.com/senzing-garage/knowledge-base/blob/main/lists/senzing-product-ids.md
+// move is 6202:  https://github.com/senzing-garage/knowledge-base/blob/main/lists/senzing-component-ids.md
 const ComponentID = 6202
 
 // Log message prefix.
