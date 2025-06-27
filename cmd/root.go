@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -182,7 +183,7 @@ func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobser
 	outputf("%16d records moved\n", anObserver.GetTotalRead())
 
 	if viper.GetBool(validate.Arg) {
-		printInvalidRecordDefinitions(anObserver.GetInvalidRecordDefinitions())
+		printInvalidRecordDefinitionCount(anObserver.GetInvalidRecordDefinitions())
 	}
 
 	outputf("         Target: %s\n", viper.GetString(option.OutputURL.Arg))
@@ -205,12 +206,18 @@ func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobser
 		}
 	}
 
+	// Errors.
+
 	if totalWrite != anObserver.GetTotalRead() {
 		outputf(
 			"Error: Discrepency between read and write counts. (%d vs. %d)\n",
 			anObserver.GetTotalRead(),
 			totalWrite,
 		)
+	}
+
+	if viper.GetBool(validate.Arg) && slices.Contains([]string{"DEBUG", "TRACE"}, moveit.LogLevel) {
+		printInvalidRecordDefinitions(anObserver.GetInvalidRecordDefinitions())
 	}
 }
 
@@ -241,8 +248,18 @@ func printTime(startTime time.Time, stopTime time.Time) {
 	outputf("\n")
 }
 
-func printInvalidRecordDefinitions(invalidRecordDefinitions []int64) {
+func printInvalidRecordDefinitionCount(invalidRecordDefinitions []int64) {
 	outputf("%16d invalid records\n", len(invalidRecordDefinitions))
+}
+
+func printInvalidRecordDefinitions(invalidRecordDefinitions []int64) {
+	outputf("  Invalid lines: ")
+
+	for _, value := range invalidRecordDefinitions {
+		outputf("%d ", value)
+	}
+
+	outputf("\n")
 }
 
 func outputf(format string, message ...any) {
