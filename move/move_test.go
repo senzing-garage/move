@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/senzing-garage/move/move"
+	"github.com/senzing-garage/move/szrecord"
 	"github.com/stretchr/testify/require"
 )
 
@@ -439,7 +440,7 @@ func TestBasicMove_SzRecord(test *testing.T) {
 		source   = "This is the source"
 	)
 
-	testObject := move.SzRecord{
+	testObject := szrecord.SzRecord{
 		Body:   body,
 		ID:     RecordID,
 		Source: source,

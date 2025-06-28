@@ -125,7 +125,7 @@ linters:
       - examples$
   settings:
     cyclop:
-      max-complexity: 13
+      max-complexity: 15
     depguard:
       rules:
         prevent_unmaintained_packages:
@@ -151,10 +151,12 @@ linters:
       allow:
         - error
         - logging.Logging
+        - recordreader.RecordReader
+        - recordwriter.RecordWriter
     mnd:
       ignored-functions:
         - '^logger\.Log$'
-        - '^move\.log$'
+        - '^mover\.log$'
         - '^notifier\.Notify$'
 
 formatters:

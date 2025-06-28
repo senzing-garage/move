@@ -10,7 +10,7 @@ import (
 	"github.com/senzing-garage/go-queueing/queues"
 )
 
-type HttpJsonlReader struct {
+type HTTPJsonlReader struct {
 	InputURL       string
 	ObserverOrigin string
 	Observers      subject.Subject
@@ -19,19 +19,23 @@ type HttpJsonlReader struct {
 	RecordMin      int
 	RecordMonitor  int
 	Validate       bool
-	waitGroup      sync.WaitGroup
+	WaitGroup      *sync.WaitGroup
 }
 
-func (reader *HttpJsonlReader) Read(ctx context.Context) error {
+func (reader *HTTPJsonlReader) Read(ctx context.Context) (int, error) {
+	var (
+		err       error
+		linesRead int
+	)
 
 	//nolint:noctx
-	response, err := http.Get(reader.InputURL) //nolint:gosec
+	response, err := http.Get(reader.InputURL)
 	if err != nil {
-		return wraperror.Errorf(err, "http.Get %s", reader.InputURL)
+		return linesRead, wraperror.Errorf(err, "http.Get %s", reader.InputURL)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return wraperror.Errorf(
+		return linesRead, wraperror.Errorf(
 			errForPackage,
 			"unable to retrieve: %s, return code: %d",
 			reader.InputURL,
@@ -41,7 +45,7 @@ func (reader *HttpJsonlReader) Read(ctx context.Context) error {
 
 	defer response.Body.Close()
 
-	processJSONL(ctx,
+	linesRead, err = processJSONL(ctx,
 		reader.InputURL,
 		reader.RecordMin,
 		reader.RecordMax,
@@ -50,8 +54,8 @@ func (reader *HttpJsonlReader) Read(ctx context.Context) error {
 		reader.RecordMonitor,
 		reader.ObserverOrigin,
 		reader.Observers,
-		&reader.waitGroup,
+		reader.WaitGroup,
 		reader.RecordChannel)
 
-	return wraperror.Errorf(err, wraperror.NoMessage)
+	return linesRead, wraperror.Errorf(err, wraperror.NoMessage)
 }

@@ -1,9 +1,9 @@
-package move_test
+package szrecord_test
 
 import (
 	"testing"
 
-	"github.com/senzing-garage/move/move"
+	"github.com/senzing-garage/move/szrecord"
 )
 
 func Test_szRecord_GetMessageId(test *testing.T) {
@@ -26,7 +26,7 @@ func Test_szRecord_GetMessageId(test *testing.T) {
 	}
 	for _, testCase := range testCases {
 		test.Run(testCase.name, func(test *testing.T) {
-			record := &move.SzRecord{
+			record := &szrecord.SzRecord{
 				Body:   testCase.fields.body,
 				ID:     testCase.fields.id,
 				Source: testCase.fields.source,

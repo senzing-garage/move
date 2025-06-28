@@ -181,7 +181,7 @@ func printExit(startTime time.Time, moveit *move.BasicMove, anObserver *cmdobser
 	outputf("\nMove complete.\n")
 	outputf("          Input: %s\n", viper.GetString(option.InputURL.Arg))
 	outputf("         Output: %s\n", viper.GetString(option.OutputURL.Arg))
-	outputf("%16d lines read\n", moveit.GetTotalLines())
+	outputf("%16d lines read\n", moveit.GetLinesRead())
 	outputf("%16d records moved\n", anObserver.GetTotalRead())
 
 	if viper.GetBool(validate.Arg) {

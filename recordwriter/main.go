@@ -1,4 +1,4 @@
-package recordreader
+package recordwriter
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 // Types
 // ----------------------------------------------------------------------------
 
-type RecordReader interface {
-	Read(ctx context.Context) (int, error)
+type RecordWriter interface {
+	Write(ctx context.Context) (int, error)
 }
 
 // ----------------------------------------------------------------------------
@@ -23,4 +23,4 @@ const ComponentID = 6202
 // Log message prefix.
 const Prefix = "move: "
 
-var errForPackage = errors.New("recordreader")
+var errForPackage = errors.New("recordwriter")

@@ -1,4 +1,4 @@
-package move
+package szrecord
 
 import (
 	"fmt"
@@ -12,12 +12,6 @@ import (
 
 // Check at compile time that the implementation adheres to the interface.
 var _ queues.Record = (*SzRecord)(nil)
-
-type SzRecord struct {
-	Body   string
-	ID     int
-	Source string
-}
 
 func (r *SzRecord) GetMessage() string {
 	return r.Body

@@ -21,26 +21,31 @@ type FileGzipReader struct {
 	RecordMin      int
 	RecordMonitor  int
 	Validate       bool
-	waitGroup      sync.WaitGroup
+	WaitGroup      *sync.WaitGroup
 }
 
-func (reader *FileGzipReader) Read(ctx context.Context) error {
+func (reader *FileGzipReader) Read(ctx context.Context) (int, error) {
+	var (
+		err       error
+		linesRead int
+	)
+
 	cleanFilePath := filepath.Clean(reader.FilePath)
 
 	file, err := os.Open(cleanFilePath)
 	if err != nil {
-		return wraperror.Errorf(err, "os.Open: %s", cleanFilePath)
+		return linesRead, wraperror.Errorf(err, "os.Open: %s", cleanFilePath)
 	}
 
 	defer file.Close()
 
 	gzipFile, err := gzip.NewReader(file)
 	if err != nil {
-		return wraperror.Errorf(err, "gzip.NewReader: %s", cleanFilePath)
+		return linesRead, wraperror.Errorf(err, "gzip.NewReader: %s", cleanFilePath)
 	}
 	defer gzipFile.Close()
 
-	processJSONL(ctx,
+	linesRead, err = processJSONL(ctx,
 		reader.FilePath,
 		reader.RecordMin,
 		reader.RecordMax,
@@ -49,8 +54,8 @@ func (reader *FileGzipReader) Read(ctx context.Context) error {
 		reader.RecordMonitor,
 		reader.ObserverOrigin,
 		reader.Observers,
-		&reader.waitGroup,
+		reader.WaitGroup,
 		reader.RecordChannel)
 
-	return wraperror.Errorf(err, wraperror.NoMessage)
+	return linesRead, wraperror.Errorf(err, wraperror.NoMessage)
 }

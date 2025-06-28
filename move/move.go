@@ -1,33 +1,23 @@
 package move
 
 import (
-	"bufio"
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/senzing-garage/go-helpers/record"
 	"github.com/senzing-garage/go-helpers/wraperror"
 	"github.com/senzing-garage/go-logging/logging"
 	"github.com/senzing-garage/go-observing/notifier"
 	"github.com/senzing-garage/go-observing/observer"
 	"github.com/senzing-garage/go-observing/subject"
 	"github.com/senzing-garage/go-queueing/queues"
-	"github.com/senzing-garage/go-queueing/queues/rabbitmq"
-	"github.com/senzing-garage/go-queueing/queues/sqs"
 	"github.com/senzing-garage/move/recordreader"
+	"github.com/senzing-garage/move/recordwriter"
 )
 
 // ----------------------------------------------------------------------------
@@ -41,22 +31,23 @@ type Error struct {
 type BasicMove struct {
 	FileType                  string
 	InputURL                  string
-	lineNumber                int
+	linesRead                 int
+	linesWritten              int
 	logger                    logging.Logging
 	LogLevel                  string
 	MonitoringPeriodInSeconds int
-	mutexLineNumber           sync.Mutex
 	mutexLogStats             sync.Mutex
 	observerOrigin            string
 	observers                 subject.Subject
 	OutputURL                 string
 	PlainText                 bool
+	reader                    recordreader.RecordReader
 	RecordMax                 int
 	RecordMin                 int
 	RecordMonitor             int
 	Validate                  bool
-	waitGroup                 sync.WaitGroup
-	recordChannel             chan queues.Record
+	waitGroup                 *sync.WaitGroup
+	writer                    recordwriter.RecordWriter
 }
 
 const (
@@ -75,8 +66,16 @@ var _ Move = (*BasicMove)(nil)
 // -- Public methods
 // ----------------------------------------------------------------------------
 
-func (move *BasicMove) IsLoggable(messageNumber int) bool {
-	logThreshold, ok := messageThresholds[move.getLogger().GetLogLevel()]
+func (mover *BasicMove) GetLinesRead() int {
+	return mover.linesRead
+}
+
+func (mover *BasicMove) GetLinesWritten() int {
+	return mover.linesWritten
+}
+
+func (mover *BasicMove) IsLoggable(messageNumber int) bool {
+	logThreshold, ok := messageThresholds[mover.getLogger().GetLogLevel()]
 	if ok {
 		if messageNumber >= logThreshold {
 			return true
@@ -90,74 +89,75 @@ func (move *BasicMove) IsLoggable(messageNumber int) bool {
 //
 // Optionally validates each record as they are read and only moves valid records.
 // Typically used to move records from a file to a queue for processing.
-func (move *BasicMove) Move(ctx context.Context) error {
+func (mover *BasicMove) Move(ctx context.Context) error {
 	var (
-		readErr  error
-		writeErr error
-		err      error
+		readErr   error
+		writeErr  error
+		err       error
+		waitGroup sync.WaitGroup
 	)
 
-	if len(move.LogLevel) > 0 {
-		err = move.SetLogLevel(ctx, move.LogLevel)
+	// Prolog.
+
+	mover.waitGroup = &waitGroup
+
+	if len(mover.LogLevel) > 0 {
+		err = mover.SetLogLevel(ctx, mover.LogLevel)
 		if err != nil {
 			return wraperror.Errorf(err, "SetLogLevel")
 		}
 	}
 
-	if move.RecordMin > move.RecordMax {
-		move.log(5040, move.RecordMin, move.RecordMax)
-
-		return wraperror.Errorf(errForPackage, "RecordMin (%d) > RecordMax (%d)", move.RecordMin, move.RecordMax)
+	if mover.RecordMin > mover.RecordMax {
+		return wraperror.Errorf(errForPackage, "RecordMin (%d) > RecordMax (%d)", mover.RecordMin, mover.RecordMax)
 	}
 
-	move.logEntry()
+	mover.logEntry()
+	mover.startMonitoring(ctx)
 
-	if move.MonitoringPeriodInSeconds <= 0 {
-		move.MonitoringPeriodInSeconds = 60
+	// Create channel, reader, and writer.
+
+	recordChannel := make(chan queues.Record, numChannels)
+
+	mover.reader, err = mover.createReader(ctx, recordChannel)
+	if err != nil {
+		return wraperror.Errorf(err, "could not create a reader from %s", mover.InputURL)
 	}
 
-	ticker := time.NewTicker(time.Duration(move.MonitoringPeriodInSeconds) * time.Second)
+	mover.writer, err = mover.createWriter(ctx, recordChannel)
+	if err != nil {
+		return wraperror.Errorf(err, "could not create a writer from %s", mover.OutputURL)
+	}
+
+	// Run reader and writer.
+
+	mover.waitGroup.Add(1)
 
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				move.logStats()
-			}
-		}
-	}()
+		defer mover.waitGroup.Done()
 
-	recordchan := make(chan queues.Record, numChannels)
-
-	theReader, err := move.getReader(ctx, recordchan)
-
-	move.waitGroup.Add(1)
-
-	go func() {
-		defer move.waitGroup.Done()
-
-		readErr = move.read(ctx, recordchan)
+		mover.linesRead, readErr = mover.reader.Read(ctx)
 		if readErr != nil {
 			select {
-			case <-recordchan:
+			case <-recordChannel:
 				// channel already closed
 			default:
-				close(recordchan)
+				close(recordChannel)
 			}
 		}
 	}()
 
-	move.waitGroup.Add(1)
+	mover.waitGroup.Add(1)
 
 	go func() {
-		defer move.waitGroup.Done()
+		defer mover.waitGroup.Done()
 
-		writeErr = move.write(ctx, recordchan)
+		mover.linesWritten, writeErr = mover.writer.Write(ctx)
 	}()
 
-	move.waitGroup.Wait()
+	mover.waitGroup.Wait()
+
+	// Epilog.
 
 	if readErr != nil {
 		return wraperror.Errorf(readErr, "Read error")
@@ -166,8 +166,6 @@ func (move *BasicMove) Move(ctx context.Context) error {
 	if writeErr != nil {
 		return wraperror.Errorf(writeErr, "Write error")
 	}
-
-	move.logExit()
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
 }
@@ -179,21 +177,21 @@ Input
   - ctx: A context to control lifecycle.
   - observer: The observer to be added.
 */
-func (move *BasicMove) RegisterObserver(ctx context.Context, observer observer.Observer) error {
+func (mover *BasicMove) RegisterObserver(ctx context.Context, observer observer.Observer) error {
 	var err error
 
-	if move.observers == nil {
-		move.observers = &subject.SimpleSubject{}
+	if mover.observers == nil {
+		mover.observers = &subject.SimpleSubject{}
 	}
 
-	err = move.observers.RegisterObserver(ctx, observer)
+	err = mover.observers.RegisterObserver(ctx, observer)
 
-	if move.observers != nil {
+	if mover.observers != nil {
 		go func() {
 			details := map[string]string{
 				"observerID": observer.GetObserverID(ctx),
 			}
-			notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8000, err, details)
+			notifier.Notify(ctx, mover.observers, mover.observerOrigin, ComponentID, 8000, err, details)
 		}()
 	}
 
@@ -207,7 +205,7 @@ Input
   - ctx: A context to control lifecycle.
   - logLevel: The desired log level. TRACE, DEBUG, INFO, WARN, ERROR, FATAL or PANIC.
 */
-func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) error {
+func (mover *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) error {
 	_ = ctx
 
 	var err error
@@ -215,16 +213,16 @@ func (move *BasicMove) SetLogLevel(ctx context.Context, logLevelName string) err
 	// Verify value of logLevelName.
 
 	if !logging.IsValidLogLevelName(logLevelName) {
-		move.log(5060, logLevelName)
+		mover.log(5060, logLevelName)
 
 		return wraperror.Errorf(errForPackage, "invalid error level: %s", logLevelName)
 	}
 
 	// Set ValidateImpl log level.
 
-	err = move.getLogger().SetLogLevel(logLevelName)
+	err = mover.getLogger().SetLogLevel(logLevelName)
 	if err == nil {
-		move.LogLevel = logLevelName
+		mover.LogLevel = logLevelName
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
@@ -237,10 +235,10 @@ Input
   - ctx: A context to control lifecycle.
   - observer: The observer to be added.
 */
-func (move *BasicMove) UnregisterObserver(ctx context.Context, observer observer.Observer) error {
+func (mover *BasicMove) UnregisterObserver(ctx context.Context, observer observer.Observer) error {
 	var err error
 
-	if move.observers != nil {
+	if mover.observers != nil {
 		// Tricky code:
 		// client.notify is called synchronously before client.observers is set to nil.
 		// In client.notify, each observer will get notified in a goroutine.
@@ -248,635 +246,349 @@ func (move *BasicMove) UnregisterObserver(ctx context.Context, observer observer
 		details := map[string]string{
 			"observerID": observer.GetObserverID(ctx),
 		}
-		notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8704, err, details)
-		err = move.observers.UnregisterObserver(ctx, observer)
+		notifier.Notify(ctx, mover.observers, mover.observerOrigin, ComponentID, 8704, err, details)
+		err = mover.observers.UnregisterObserver(ctx, observer)
 
-		if !move.observers.HasObservers(ctx) {
-			move.observers = nil
+		if !mover.observers.HasObservers(ctx) {
+			mover.observers = nil
 		}
 	}
 
 	return wraperror.Errorf(err, wraperror.NoMessage)
-}
-
-func (move *BasicMove) GetTotalLines() int {
-	return move.lineNumber
 }
 
 // ----------------------------------------------------------------------------
 // Reader factory
 // ----------------------------------------------------------------------------
 
-func (move *BasicMove) getReader(
+func (mover *BasicMove) createReader(
 	ctx context.Context,
 	recordChannel chan queues.Record,
 ) (recordreader.RecordReader, error) {
+	var err error
 
-	inputURL := move.InputURL
+	inputURL := mover.InputURL
 	inputURLLen := len(inputURL)
 
 	if inputURLLen == 0 { // assume stdin for zero-length URL.
-		reader := &recordreader.StdinJsonlReader{
-			ObserverOrigin: move.observerOrigin,
-			Observers:      move.observers,
-			RecordChannel:  recordChannel,
-			RecordMax:      move.RecordMax,
-			RecordMin:      move.RecordMin,
-			RecordMonitor:  move.RecordMonitor,
-			Validate:       move.Validate,
-			waitGroup:      &move.waitGroup,
-		}
-		return reader, nil
+		reader, err := mover.createStdinJSONReader(ctx, recordChannel)
+
+		return reader, wraperror.Errorf(err, "createStdinJsonReader")
 	}
-
-	return nil, nil
-
-}
-
-// ----------------------------------------------------------------------------
-// Reader routing
-// ----------------------------------------------------------------------------
-
-// Method read attempts to determine the source of records.
-// It then parses the source and puts the records into the record channel.
-func (move *BasicMove) read(ctx context.Context, recordchan chan queues.Record) error {
-	_ = ctx
-
-	var err error
-
-	inputURL := move.InputURL
-	inputURLLen := len(inputURL)
-
-	if inputURLLen == 0 {
-		// assume stdin
-		return move.readStdin(ctx, recordchan)
-	}
-
-	// This assumes the URL includes a schema and path so, minimally:
-	//  "s://p" where the schema is 's' and 'p' is the complete path
-	// if len(inputURL) < len("s://p") {
-	// 	move.log(5000, inputURL)
-
-	// 	return wraperror.Errorf(errForPackage, "invalid SENZING_TOOLS_INPUT_URL: %s", inputURL)
-	// }
 
 	parsedURL, err := url.Parse(inputURL)
 	if err != nil {
-		move.log(5001, inputURL)
-
-		return wraperror.Errorf(err, "url.Parse")
+		return nil, wraperror.Errorf(err, "url.Parse: %s", inputURL)
 	}
 
 	switch parsedURL.Scheme {
 	case "file":
-		err = move.readFile(ctx, parsedURL, recordchan)
+		return mover.createFileReader(ctx, parsedURL, recordChannel)
 	case "http", "https":
-		err = move.readHTTP(ctx, parsedURL, recordchan)
+		return mover.createHTTPReader(ctx, parsedURL, recordChannel)
 	default:
-		move.log(5002, inputURL, parsedURL.Scheme)
-
-		return wraperror.Errorf(errForPackage, "cannot handle input URL: %s", parsedURL.Scheme)
+		return nil, wraperror.Errorf(errForPackage, "invalid protocol %s in input URL: %s", parsedURL.Scheme, inputURL)
 	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-func (move *BasicMove) readFile(ctx context.Context, parsedURL *url.URL, recordchan chan queues.Record) error {
+func (mover *BasicMove) createFileReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
 	_ = ctx
 
-	var err error
-
 	switch {
-	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == FiletypeJSONL:
-		err = move.readFileOfJSONL(ctx, parsedURL.Path, recordchan)
-	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == FiletypeGZ:
-		err = move.readFileOfGZIP(ctx, parsedURL.Path, recordchan)
+	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(mover.FileType) == FiletypeJSONL:
+		return mover.createFileJSONReader(ctx, parsedURL, recordChannel)
+	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(mover.FileType) == FiletypeGZ:
+		return mover.createFileGzipReader(ctx, parsedURL, recordChannel)
 	default:
-		// IMPROVE: process JSON file?
-		close(recordchan)
-		move.log(5003, "file://"+parsedURL.Path)
-
-		err = wraperror.Errorf(errForPackage, "unable to process file://%s", parsedURL.Path)
+		return nil, wraperror.Errorf(errForPackage, "cannot create reader for file://%s", parsedURL.Path)
 	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-func (move *BasicMove) readHTTP(ctx context.Context, parsedURL *url.URL, recordchan chan queues.Record) error {
+func (mover *BasicMove) createHTTPReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
 	_ = ctx
 
-	var err error
-
-	inputURL := parsedURL.String()
-
 	switch {
-	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == FiletypeJSONL:
-		err = move.readHTTPofJSONL(ctx, inputURL, recordchan)
-	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == FiletypeGZ:
-		err = move.readHTTPofGZIP(ctx, inputURL, recordchan)
+	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(mover.FileType) == FiletypeJSONL:
+		return mover.createHTTPJSONReader(ctx, parsedURL, recordChannel)
+	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(mover.FileType) == FiletypeGZ:
+		return mover.createHTTPGzipReader(ctx, parsedURL, recordChannel)
 	default:
-		move.log(5004, "http://"+parsedURL.Path)
-
-		return wraperror.Errorf(errForPackage, "unable to process http://%s", parsedURL.Path)
+		return nil, wraperror.Errorf(errForPackage, "cannot create reader for %s", parsedURL.String())
 	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-// ----------------------------------------------------------------------------
-// Readers
-// ----------------------------------------------------------------------------
-
-// Opens and reads a JSONL file that has been GZIPped.
-func (move *BasicMove) readFileOfGZIP(ctx context.Context, gzipFileName string, recordchan chan queues.Record) error {
-	cleanGzipFileName := filepath.Clean(gzipFileName)
-
-	gzipfile, err := os.Open(cleanGzipFileName)
-	if err != nil {
-		move.log(5005, cleanGzipFileName)
-
-		return wraperror.Errorf(err, "os.Open")
-	}
-
-	defer gzipfile.Close()
-
-	reader, err := gzip.NewReader(gzipfile)
-	if err != nil {
-		return wraperror.Errorf(err, "gzip.NewReader")
-	}
-	defer reader.Close()
-
-	move.processJSONL(ctx, gzipFileName, reader, recordchan)
-
-	return nil
-}
-
-// Opens and reads a JSONL file.
-func (move *BasicMove) readFileOfJSONL(ctx context.Context, jsonFile string, recordchan chan queues.Record) error {
-	cleanJSONFile := filepath.Clean(jsonFile)
-
-	file, err := os.Open(cleanJSONFile)
-	if err != nil {
-		move.log(5006, cleanJSONFile)
-
-		return wraperror.Errorf(err, "os.Open")
-	}
-
-	defer file.Close()
-
-	move.processJSONL(ctx, jsonFile, file, recordchan)
-
-	return nil
-}
-
-func (move *BasicMove) readHTTPofGZIP(ctx context.Context, gzipURL string, recordchan chan queues.Record) error {
-	//nolint:noctx
-	response, err := http.Get(gzipURL) //nolint:gosec
-	if err != nil {
-		move.log(5007, gzipURL)
-
-		return wraperror.Errorf(err, "error retrieving inputURL: %s", gzipURL)
-	}
-
-	if response.StatusCode != http.StatusOK {
-		move.log(5008, gzipURL, response.StatusCode)
-
-		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", gzipURL, response.StatusCode)
-	}
-
-	defer response.Body.Close()
-
-	reader, err := gzip.NewReader(response.Body)
-	if err != nil {
-		return wraperror.Errorf(err, "gzip.NewReader")
-	}
-
-	defer reader.Close()
-
-	move.processJSONL(ctx, gzipURL, reader, recordchan)
-
-	return nil
-}
-
-// Opens and reads a JSONL http resource.
-func (move *BasicMove) readHTTPofJSONL(ctx context.Context, jsonURL string, recordchan chan queues.Record) error {
-	//nolint:noctx
-	response, err := http.Get(jsonURL) //nolint:gosec
-	if err != nil {
-		move.log(5009, jsonURL)
-
-		return wraperror.Errorf(err, "http.Get")
-	}
-
-	if response.StatusCode != http.StatusOK {
-		move.log(5010, jsonURL, response.StatusCode)
-
-		return wraperror.Errorf(errForPackage, "unable to retrieve: %s, return code: %d", jsonURL, response.StatusCode)
-	}
-
-	defer response.Body.Close()
-
-	move.processJSONL(ctx, jsonURL, response.Body, recordchan)
-
-	return nil
-}
-
-func (move *BasicMove) readStdin(ctx context.Context, recordchan chan queues.Record) error {
-	info, err := os.Stdin.Stat()
-	if err != nil {
-		move.log(5050)
-
-		return wraperror.Errorf(err, "error reading stdin")
-	}
-	// printFileInfo(info)
-
-	if info.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
-		reader := bufio.NewReader(os.Stdin)
-		move.processJSONL(ctx, "stdin", reader, recordchan)
-
-		return nil
-	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
-}
-
-// ----------------------------------------------------------------------------
-// Writer routing
-// ----------------------------------------------------------------------------
-
-// This function implements writing to RabbitMQ.
-func (move *BasicMove) write(ctx context.Context, recordchan chan queues.Record) error {
+func (mover *BasicMove) createFileGzipReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
 	var err error
 
-	outputURL := move.OutputURL
+	_ = ctx
+	result := &recordreader.FileGzipReader{
+		FilePath:       parsedURL.Path,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		RecordMax:      mover.RecordMax,
+		RecordMin:      mover.RecordMin,
+		RecordMonitor:  mover.RecordMonitor,
+		Validate:       mover.Validate,
+		WaitGroup:      mover.waitGroup,
+	}
 
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+func (mover *BasicMove) createFileJSONReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
+	var err error
+
+	_ = ctx
+	result := &recordreader.FileJsonlReader{
+		FilePath:       parsedURL.Path,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		RecordMax:      mover.RecordMax,
+		RecordMin:      mover.RecordMin,
+		RecordMonitor:  mover.RecordMonitor,
+		Validate:       mover.Validate,
+		WaitGroup:      mover.waitGroup,
+	}
+
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+func (mover *BasicMove) createHTTPGzipReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
+	var err error
+
+	_ = ctx
+	_ = parsedURL
+	result := &recordreader.HTTPGzipReader{
+		InputURL:       mover.InputURL,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		RecordMax:      mover.RecordMax,
+		RecordMin:      mover.RecordMin,
+		RecordMonitor:  mover.RecordMonitor,
+		Validate:       mover.Validate,
+		WaitGroup:      mover.waitGroup,
+	}
+
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+func (mover *BasicMove) createHTTPJSONReader(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
+	var err error
+
+	_ = ctx
+	_ = parsedURL
+	result := &recordreader.HTTPJsonlReader{
+		InputURL:       mover.InputURL,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		RecordMax:      mover.RecordMax,
+		RecordMin:      mover.RecordMin,
+		RecordMonitor:  mover.RecordMonitor,
+		Validate:       mover.Validate,
+		WaitGroup:      mover.waitGroup,
+	}
+
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+func (mover *BasicMove) createStdinJSONReader(
+	ctx context.Context,
+	recordChannel chan queues.Record,
+) (recordreader.RecordReader, error) {
+	var err error
+
+	_ = ctx
+	result := &recordreader.StdinJsonlReader{
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		RecordMax:      mover.RecordMax,
+		RecordMin:      mover.RecordMin,
+		RecordMonitor:  mover.RecordMonitor,
+		Validate:       mover.Validate,
+		WaitGroup:      mover.waitGroup,
+	}
+
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
+
+// ----------------------------------------------------------------------------
+// Writer factory
+// ----------------------------------------------------------------------------
+
+func (mover *BasicMove) createWriter(
+	ctx context.Context,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
+	var err error
+
+	outputURL := mover.OutputURL
 	outputURLLen := len(outputURL)
-	if outputURLLen == 0 {
-		// assume stdout
-		return move.writeStdout(ctx, recordchan)
-	}
 
-	// This assumes the URL includes a schema and path so, minimally:
-	//  "s://p" where the schema is 's' and 'p' is the complete path
-	if len(outputURL) < len("s://p") {
-		move.log(5030, outputURL)
+	if outputURLLen == 0 { // assume stdin for zero-length URL.
+		reader, err := mover.createStdoutWriter(ctx, recordChannel)
 
-		return wraperror.Errorf(errForPackage, "invalid outputURL: %s", outputURL)
+		return reader, wraperror.Errorf(err, "createStdinJsonReader")
 	}
 
 	parsedURL, err := url.Parse(outputURL)
 	if err != nil {
-		move.log(5031, outputURL)
-
-		return wraperror.Errorf(err, "invalid outputURL: %s", outputURL)
+		return nil, wraperror.Errorf(err, "invalid outputURL: %s", outputURL)
 	}
 
 	switch parsedURL.Scheme {
-	case "amqp":
-		rabbitmq.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, !move.PlainText)
 	case "file":
-		err = move.writeFile(ctx, parsedURL, recordchan)
-	case "https":
-		// uses actual AWS SQS URL  IMPROVE: detect sqs/amazonaws url?
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
+		return mover.createFileWriter(ctx, parsedURL, recordChannel)
 	case "null":
-		move.writeNull(ctx, recordchan)
-	case "sqs":
-		// allows for using a dummy URL with just a queue-name
-		// eg  sqs://lookup?queue-name=myqueue
-		sqs.StartManagedProducer(ctx, outputURL, runtime.GOMAXPROCS(0), recordchan, move.LogLevel, move.PlainText)
+		return mover.createNullWriter(ctx, recordChannel)
 	default:
-		return wraperror.Errorf(errForPackage, "unknown scheme, unable to write to: %s", outputURL)
+		return nil, wraperror.Errorf(
+			errForPackage,
+			"invalid protocol %s in output URL: %s",
+			parsedURL.Scheme,
+			outputURL,
+		)
 	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-func (move *BasicMove) writeFile(ctx context.Context, parsedURL *url.URL, recordchan chan queues.Record) error {
+func (mover *BasicMove) createFileWriter(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
 	_ = ctx
-
-	var err error
 
 	switch {
-	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(move.FileType) == FiletypeJSONL:
-		err = move.writeFileOfJSONL(ctx, parsedURL.Path, recordchan)
-	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(move.FileType) == "GZ":
-		err = move.writeFileOfGZIP(ctx, parsedURL.Path, recordchan)
+	case strings.HasSuffix(parsedURL.Path, "jsonl"), strings.ToUpper(mover.FileType) == FiletypeJSONL:
+		return mover.createFileJSONWriter(ctx, parsedURL, recordChannel)
+	case strings.HasSuffix(parsedURL.Path, "gz"), strings.ToUpper(mover.FileType) == FiletypeGZ:
+		return mover.createFileGzipWriter(ctx, parsedURL, recordChannel)
 	default:
-		// IMPROVE: process JSON file?
-		err = wraperror.Errorf(errForPackage, "only able to process JSON-Lines files at this time")
+		return nil, wraperror.Errorf(errForPackage, "cannot create reader for file://%s", parsedURL.Path)
 	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-// ----------------------------------------------------------------------------
-// Writers
-// ----------------------------------------------------------------------------
+func (mover *BasicMove) createFileGzipWriter(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
+	var err error
 
-func (move *BasicMove) writeFileOfGZIP(ctx context.Context, fileName string, recordchan chan queues.Record) error {
-	_, err := os.Stat(fileName)
-	if err == nil { // file exists
-		return wraperror.Errorf(errForPackage, "output file %s already exists", fileName)
-	}
-
-	fileName = filepath.Clean(fileName)
-
-	file, err := os.Create(fileName)
-	if err != nil {
-		move.log(5032, fileName)
-
-		return wraperror.Errorf(err, "fatal error opening %s", fileName)
-	}
-
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			move.log(3001, fileName, err)
-		}
-	}()
-
-	_, err = file.Stat()
-	if err != nil {
-		return wraperror.Errorf(err, "fatal error opening %s", fileName)
-	}
-
-	gzfile := gzip.NewWriter(file)
-	defer gzfile.Close()
-
-	writer := bufio.NewWriter(gzfile)
-
-	for record := range recordchan {
-		recordDefinition := record.GetMessage()
-		move.observeWrite(ctx, recordDefinition)
-
-		_, err := writer.WriteString(recordDefinition + "\n")
-		if err != nil {
-			return wraperror.Errorf(err, "error writing to stdout")
-		}
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return wraperror.Errorf(err, "error flushing %s", fileName)
-	}
-
-	return wraperror.Errorf(err, wraperror.NoMessage)
-}
-
-func (move *BasicMove) writeFileOfJSONL(ctx context.Context, fileName string, recordchan chan queues.Record) error {
 	_ = ctx
-
-	_, err := os.Stat(fileName)
-	if err == nil { // file exists
-		move.log(5032, fileName)
-
-		return wraperror.Errorf(errForPackage, "output file %s already exists", fileName)
+	result := &recordwriter.FileGzipWriter{
+		FilePath:       parsedURL.Path,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		WaitGroup:      mover.waitGroup,
 	}
 
-	fileName = filepath.Clean(fileName)
-
-	file, err := os.Create(fileName)
-	if err != nil {
-		return wraperror.Errorf(err, "fatal error opening %s", fileName)
-	}
-
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			move.log(3001, fileName, err)
-		}
-	}()
-
-	_, err = file.Stat()
-	if err != nil {
-		move.log(5033, fileName)
-
-		return wraperror.Errorf(err, "fatal error opening %s", fileName)
-	}
-
-	writer := bufio.NewWriter(file)
-
-	for record := range recordchan {
-		recordDefinition := record.GetMessage()
-		move.observeWrite(ctx, recordDefinition)
-
-		_, err := writer.WriteString(recordDefinition + "\n")
-		if err != nil {
-			return wraperror.Errorf(err, "error writing to stdout")
-		}
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return wraperror.Errorf(err, "error flushing %s", fileName)
-	}
-
-	return nil
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-func (move *BasicMove) writeNull(ctx context.Context, recordchan chan queues.Record) {
-	_ = ctx
+func (mover *BasicMove) createFileJSONWriter(
+	ctx context.Context,
+	parsedURL *url.URL,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
+	var err error
 
-	for record := range recordchan {
-		recordDefinition := record.GetMessage()
-		move.observeWrite(ctx, recordDefinition)
+	_ = ctx
+	result := &recordwriter.FileJSONWriter{
+		FilePath:       parsedURL.Path,
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		WaitGroup:      mover.waitGroup,
 	}
+
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
 }
 
-func (move *BasicMove) writeStdout(ctx context.Context, recordchan chan queues.Record) error {
+func (mover *BasicMove) createNullWriter(
+	ctx context.Context,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
+	var err error
+
 	_ = ctx
-
-	_, err := os.Stdout.Stat()
-	if err != nil {
-		move.log(5051)
-
-		return wraperror.Errorf(err, "error opening stdout")
+	result := &recordwriter.NullWriter{
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		WaitGroup:      mover.waitGroup,
 	}
 
-	writer := bufio.NewWriter(os.Stdout)
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
+}
 
-	for record := range recordchan {
-		recordDefinition := record.GetMessage()
-		move.observeWrite(ctx, recordDefinition)
+func (mover *BasicMove) createStdoutWriter(
+	ctx context.Context,
+	recordChannel chan queues.Record,
+) (recordwriter.RecordWriter, error) {
+	var err error
 
-		_, err := writer.WriteString(recordDefinition + "\n")
-		if err != nil {
-			return wraperror.Errorf(err, "error writing to stdout")
-		}
+	_ = ctx
+	result := &recordwriter.StdoutWriter{
+		ObserverOrigin: mover.observerOrigin,
+		Observers:      mover.observers,
+		RecordChannel:  recordChannel,
+		WaitGroup:      mover.waitGroup,
 	}
 
-	err = writer.Flush()
-	if err != nil {
-		return wraperror.Errorf(err, "error flushing stdout")
-	}
-
-	return nil
+	return result, wraperror.Errorf(err, wraperror.NoMessage)
 }
 
 // ----------------------------------------------------------------------------
 // Utility methods
 // ----------------------------------------------------------------------------
 
-func (move *BasicMove) increaseTotalLines(increase int) int {
-	move.mutexLineNumber.Lock()
-	defer move.mutexLineNumber.Unlock()
-
-	move.lineNumber += increase
-	result := move.lineNumber
-
-	return result
-}
-
-// Process records in the JSONL format; reading one record per line from
-// the given reader and placing the records into the record channel.
-func (move *BasicMove) processJSONL(
-	ctx context.Context,
-	fileName string,
-	reader io.Reader,
-	recordchan chan queues.Record,
-) {
-	_ = ctx
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
-
-	move.resetTotalLines()
-
-	for scanner.Scan() {
-		lineNumber := move.increaseTotalLines(1)
-		if lineNumber < move.RecordMin {
-			continue
-		}
-
-		recordDefinition := strings.TrimSpace(scanner.Text())
-
-		if len(recordDefinition) > 0 { // ignore blank lines
-			valid := true
-			if move.Validate {
-				valid = move.isRecordDefinitionValid(ctx, recordDefinition, lineNumber)
-			}
-
-			if valid {
-				fmt.Printf(">>>>> push to recordchan\n")
-				move.observeRead(ctx, recordDefinition)
-				recordchan <- &SzRecord{recordDefinition, lineNumber, fileName}
-			}
-		}
-
-		if (move.RecordMonitor > 0) && (lineNumber%move.RecordMonitor == 0) {
-			move.log(2001, lineNumber)
-		}
-
-		if move.RecordMax > 0 && lineNumber >= (move.RecordMax) {
-			break
-		}
+func (mover *BasicMove) startMonitoring(ctx context.Context) {
+	if mover.MonitoringPeriodInSeconds <= 0 {
+		mover.MonitoringPeriodInSeconds = 60
 	}
 
-	close(recordchan)
-}
+	ticker := time.NewTicker(time.Duration(mover.MonitoringPeriodInSeconds) * time.Second)
 
-func (move *BasicMove) resetTotalLines() {
-	move.mutexLineNumber.Lock()
-	defer move.mutexLineNumber.Unlock()
-	move.lineNumber = 0
-}
-
-func (move *BasicMove) isRecordDefinitionValid(ctx context.Context, recordDefinition string, lineNumber int) bool {
-	result, err := record.Validate(recordDefinition)
-	if err != nil || !result {
-		result = false
-
-		move.log(3010, lineNumber, err)
-
-		if move.observers != nil {
-			var (
-				aRecord        record.Record
-				dataSourceCode string
-				recordID       string
-			)
-
-			validUnmarshal := json.Unmarshal([]byte(recordDefinition), &aRecord) == nil
-			if validUnmarshal {
-				dataSourceCode = aRecord.DataSource
-				recordID = aRecord.ID
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				mover.logStats()
 			}
-
-			move.waitGroup.Add(1)
-
-			go func() {
-				defer move.waitGroup.Done()
-
-				details := map[string]string{
-					"dataSourceCode": dataSourceCode,
-					"lineNumber":     strconv.Itoa(lineNumber),
-					"recordId":       recordID,
-				}
-				notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8003, err, details)
-			}()
 		}
-	}
-
-	return result
-}
-
-// ----------------------------------------------------------------------------
-// Observing
-// ----------------------------------------------------------------------------
-
-func (move *BasicMove) observeRead(ctx context.Context, recordDefinition string) {
-	if move.observers != nil {
-		move.waitGroup.Add(1)
-
-		go func() {
-			defer move.waitGroup.Done()
-
-			var (
-				aRecord        record.Record
-				dataSourceCode string
-				recordID       string
-			)
-
-			valid := json.Unmarshal([]byte(recordDefinition), &aRecord) == nil
-			if valid {
-				dataSourceCode = aRecord.DataSource
-				recordID = aRecord.ID
-			}
-
-			details := map[string]string{
-				"dataSourceCode": dataSourceCode,
-				"recordId":       recordID,
-			}
-			notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8001, nil, details)
-		}()
-	}
-}
-
-func (move *BasicMove) observeWrite(ctx context.Context, recordDefinition string) {
-	if move.observers != nil {
-		move.waitGroup.Add(1)
-
-		go func() {
-			defer move.waitGroup.Done()
-
-			var (
-				aRecord        record.Record
-				dataSourceCode string
-				recordID       string
-			)
-
-			valid := json.Unmarshal([]byte(recordDefinition), &aRecord) == nil
-			if valid {
-				dataSourceCode = aRecord.DataSource
-				recordID = aRecord.ID
-			}
-
-			details := map[string]string{
-				"dataSourceCode": dataSourceCode,
-				"recordId":       recordID,
-			}
-			notifier.Notify(ctx, move.observers, move.observerOrigin, ComponentID, 8002, nil, details)
-		}()
-	}
+	}()
 }
 
 // ----------------------------------------------------------------------------
@@ -884,74 +596,72 @@ func (move *BasicMove) observeWrite(ctx context.Context, recordDefinition string
 // ----------------------------------------------------------------------------
 
 // Get the Logger singleton.
-func (move *BasicMove) getLogger() logging.Logging {
+func (mover *BasicMove) getLogger() logging.Logging {
 	var err error
 
-	if move.logger == nil {
+	if mover.logger == nil {
 		options := []interface{}{
 			logging.OptionCallerSkip{Value: callerSkip},
 			logging.OptionMessageFields{Value: []string{"id", "text", "reason"}},
 		}
 
-		move.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)
+		mover.logger, err = logging.NewSenzingLogger(ComponentID, IDMessages, options...)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	return move.logger
+	return mover.logger
 }
 
 // Log message.
-func (move *BasicMove) log(messageNumber int, details ...interface{}) {
-	if move.PlainText {
-		if move.IsLoggable(messageNumber) {
+func (mover *BasicMove) log(messageNumber int, details ...interface{}) {
+	if mover.PlainText {
+		if mover.IsLoggable(messageNumber) {
 			outputln(fmt.Sprintf(IDMessages[messageNumber], details...))
 		}
 	} else {
-		move.getLogger().Log(messageNumber, details...)
+		mover.getLogger().Log(messageNumber, details...)
 	}
 }
 
-func (move *BasicMove) logBuildInfo() {
+func (mover *BasicMove) logBuildInfo() {
 	buildInfo, ok := debug.ReadBuildInfo()
 	if ok {
-		move.log(1002, buildInfo.GoVersion, buildInfo.Path, buildInfo.Main.Path, buildInfo.Main.Version)
+		mover.log(1002, buildInfo.GoVersion, buildInfo.Path, buildInfo.Main.Path, buildInfo.Main.Version)
 	} else {
-		move.log(3011)
+		mover.log(3011)
 	}
 }
 
-func (move *BasicMove) logEntry() {
-	move.log(
+func (mover *BasicMove) logEntry() {
+	mover.log(
 		1001,
-		move.InputURL,
-		move.OutputURL,
-		move.FileType,
-		move.RecordMin,
-		move.RecordMax,
-		move.RecordMonitor,
-		move.MonitoringPeriodInSeconds,
-		move.LogLevel,
+		mover.InputURL,
+		mover.OutputURL,
+		mover.FileType,
+		mover.RecordMin,
+		mover.RecordMax,
+		mover.RecordMonitor,
+		mover.MonitoringPeriodInSeconds,
+		mover.LogLevel,
 	)
-	move.logBuildInfo()
-	move.logStats()
+	mover.logBuildInfo()
+	mover.logStats()
 }
 
-func (move *BasicMove) logExit() {}
-
-func (move *BasicMove) logStats() {
+func (mover *BasicMove) logStats() {
 	var (
 		memStats runtime.MemStats
 		gcStats  debug.GCStats
 	)
 
-	move.mutexLogStats.Lock()
-	defer move.mutexLogStats.Unlock()
+	mover.mutexLogStats.Lock()
+	defer mover.mutexLogStats.Unlock()
 
 	runtime.ReadMemStats(&memStats)
 	debug.ReadGCStats(&gcStats)
-	move.log(
+	mover.log(
 		1003,
 		runtime.NumCPU(),
 		runtime.NumGoroutine(),

@@ -19,18 +19,23 @@ type StdinJsonlReader struct {
 	RecordMin      int
 	RecordMonitor  int
 	Validate       bool
-	waitGroup      sync.WaitGroup
+	WaitGroup      *sync.WaitGroup
 }
 
-func (reader *StdinJsonlReader) Read(ctx context.Context) error {
+func (reader *StdinJsonlReader) Read(ctx context.Context) (int, error) {
+	var (
+		err       error
+		linesRead int
+	)
+
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		return wraperror.Errorf(err, "error reading stdin")
+		return linesRead, wraperror.Errorf(err, "error reading stdin")
 	}
 
 	if info.Mode()&os.ModeNamedPipe == os.ModeNamedPipe {
 		stdinReader := bufio.NewReader(os.Stdin)
-		processJSONL(ctx,
+		linesRead, err = processJSONL(ctx,
 			"stdin",
 			reader.RecordMin,
 			reader.RecordMax,
@@ -39,10 +44,10 @@ func (reader *StdinJsonlReader) Read(ctx context.Context) error {
 			reader.RecordMonitor,
 			reader.ObserverOrigin,
 			reader.Observers,
-			&reader.waitGroup,
+			reader.WaitGroup,
 			reader.RecordChannel,
 		)
 	}
 
-	return wraperror.Errorf(err, wraperror.NoMessage)
+	return linesRead, wraperror.Errorf(err, wraperror.NoMessage)
 }
