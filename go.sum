@@ -47,6 +47,8 @@ github.com/senzing-garage/go-messaging v1.5.3 h1:bH+LtEgNJj/PRbg1VMK9/Gk457Cdfdc
 github.com/senzing-garage/go-messaging v1.5.3/go.mod h1:7qvSNAVyWcSIcsnDAm8obCxHItljN295O3fX4bOgfp0=
 github.com/senzing-garage/go-observing v0.3.6 h1:vIQTaWbCxYRSJFw4pDKKfTqOYqugB2rUMH3LWwGUZFM=
 github.com/senzing-garage/go-observing v0.3.6/go.mod h1:ghkX9HSaKGjwYzsPLZVt+FO9AU/w4jzqvI2MAXmfGXs=
+github.com/senzing-garage/go-queueing v0.4.5 h1:qCGbJjA1OEpRH3pDBzgTc7kRFG+ubdvtYATcOEBRnBQ=
+github.com/senzing-garage/go-queueing v0.4.5/go.mod h1:rCbP97j0qI3RTv9722j40xoXMvqHKiv/2GVOTPG1Le0=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spf13/afero v1.14.0 h1:9tH6MapGnn/j0eb0yIXiLjERO8RB6xIVZRDCX7PtqWA=
