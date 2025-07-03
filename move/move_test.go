@@ -39,6 +39,7 @@ func TestBasicMove_Move_table(test *testing.T) {
 
 	// serve jsonl file
 	server, listener, port := serveResource(test, filename)
+
 	go func() {
 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -53,6 +54,7 @@ func TestBasicMove_Move_table(test *testing.T) {
 
 	// serve gzip file
 	gzipServer, gzipListener, gzipPort := serveResource(test, gzipFileName)
+
 	go func() {
 		if err := gzipServer.Serve(*gzipListener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -170,6 +172,7 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 
 	// serve jsonl file
 	server, listener, port := serveResource(test, filename)
+
 	go func() {
 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -184,6 +187,7 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 
 	// serve gzip file
 	gzipServer, gzipListener, gzipPort := serveResource(test, gzipFileName)
+
 	go func() {
 		if err := gzipServer.Serve(*gzipListener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -583,6 +587,7 @@ func TestBasicMove_readJSONLResource(test *testing.T) {
 	defer cleanUpTempFile()
 
 	server, listener, port := serveResource(test, filename)
+
 	go func() {
 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -620,6 +625,7 @@ func TestBasicMove_readJSONLResource_file_does_not_exist(test *testing.T) {
 	filename := "/bad.jsonl"
 
 	server, listener, port := serveResource(test, filename)
+
 	go func() {
 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -686,6 +692,7 @@ func TestBasicMove_readGZIPResource_file_does_not_exist(test *testing.T) {
 	filename := "/bad.gz"
 
 	server, listener, port := serveResource(test, filename)
+
 	go func() {
 		if err := server.Serve(*listener); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server.Serve(): %v", err)
@@ -867,10 +874,12 @@ func createTempGZIPDataFile(t *testing.T, content string) (string, func()) {
 
 	tmpfile, err := os.CreateTemp(t.TempDir(), "test.*.jsonl.gz")
 	require.NoError(t, err)
+
 	defer tmpfile.Close()
 
 	gzippedFile := gzip.NewWriter(tmpfile)
 	defer gzippedFile.Close()
+
 	fileWriter := bufio.NewWriter(gzippedFile)
 	_, err = fileWriter.WriteString(content)
 	require.NoError(t, err)

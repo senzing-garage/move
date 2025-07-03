@@ -2,7 +2,7 @@
 # Stages
 # -----------------------------------------------------------------------------
 
-ARG IMAGE_BUILDER=golang:1.24.1-bookworm
+ARG IMAGE_BUILDER=golang:1.24.4-bookworm
 ARG IMAGE_FINAL=senzing/senzingsdk-runtime:latest
 
 # -----------------------------------------------------------------------------
@@ -60,6 +60,8 @@ LABEL Name="senzing/move" \
       Version="0.1.0"
 HEALTHCHECK CMD ["/app/healthcheck.sh"]
 USER root
+
+# Install packages via apt-get.
 
 # Copy files from repository.
 
