@@ -21,6 +21,7 @@ func Test_RunE_Linux(test *testing.T) {
 
 	inputFile, err := os.CreateTemp(tempDir, "move-cmd-input-*.jsonl")
 	require.NoError(test, err)
+
 	defer os.Remove(inputFile.Name())
 
 	outputFile, err := os.CreateTemp(tempDir, "move-cmd-output-*.jsonl")
