@@ -898,9 +898,19 @@ func createTempGZIPDataFile(t *testing.T, content string) (string, func()) {
 func serveResource(t *testing.T, filename string) (*http.Server, *net.Listener, int) {
 	t.Helper()
 
+	const (
+		keepAliveSeconds = 30
+	)
+
 	var port int
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	ctx := t.Context()
+
+	listenConfig := &net.ListenConfig{ //nolint
+		KeepAlive: keepAliveSeconds * time.Second,
+	}
+
+	listener, err := listenConfig.Listen(ctx, "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 
 	listenerAddr, isOK := listener.Addr().(*net.TCPAddr)
