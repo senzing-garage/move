@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Make go version tag
-        uses: senzing-factory/github-action-make-go-tag@v1
+        uses: senzing-factory/github-action-make-go-tag@v2
 
   slack-notification:
     needs: [make-go-tag]
