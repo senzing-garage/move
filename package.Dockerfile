@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 ARG IMAGE_BUILDER=golang:1.24.4-bookworm
-ARG IMAGE_FPM=dockter/fpm:latest
+ARG IMAGE_FPM=dockter/fpm:1.1.0
 ARG IMAGE_FINAL=alpine
 
 # -----------------------------------------------------------------------------
