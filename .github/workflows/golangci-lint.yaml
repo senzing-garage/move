@@ -6,15 +6,16 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  # Required: allow read access to the content for analysis.
-  contents: read
-  # Optional: allow read access to pull request. Use with `only-new-issues` option.
-  pull-requests: read
+permissions: {}
 
 jobs:
   golangci:
     name: lint
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
+      # Optional: allow read access to pull request. Use with `only-new-issues` option.
+      pull-requests: read
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup go
         uses: actions/setup-go@v6
