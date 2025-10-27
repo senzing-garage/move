@@ -54,7 +54,7 @@ var validate = option.ContextVariable{
 
 var ContextVariablesForMultiPlatform = []option.ContextVariable{
 	option.DelayInSeconds,
-	option.EngineInstanceName.SetDefault(fmt.Sprintf("move-%d", time.Now().Unix())),
+	option.CoreInstanceName.SetDefault(fmt.Sprintf("move-%d", time.Now().Unix())),
 	option.InputFileType,
 	option.InputURL,
 	option.JSONOutput,
