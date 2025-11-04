@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 //lint:file-ignore U1000 Ignore all unused code, this is a test file.
 
 package move_test
