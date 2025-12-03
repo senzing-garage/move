@@ -35,6 +35,7 @@
     "OSTYPE",
     "pkill",
     "pydevproject",
+    "rabbitmq",
     "RESOURCEPATH",
     "rootfs",
     "Senzing",
