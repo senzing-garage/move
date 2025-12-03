@@ -70,6 +70,7 @@ make dependencies                   # Update Go module dependencies
 ### Configuration
 
 All options can be set via CLI flags or `SENZING_TOOLS_*` environment variables:
+
 - `--input-url` / `SENZING_TOOLS_INPUT_URL` - Source URL
 - `--output-url` / `SENZING_TOOLS_OUTPUT_URL` - Destination URL
 - `--input-file-type` / `SENZING_TOOLS_INPUT_FILE_TYPE` - Override file type detection (JSONL)
