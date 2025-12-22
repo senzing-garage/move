@@ -11,7 +11,7 @@ ARG IMAGE_FINAL=alpine@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31
 # -----------------------------------------------------------------------------
 
 FROM ${IMAGE_BUILDER} AS builder
-ENV REFRESHED_AT=2024-07-01
+ENV REFRESHED_AT=2025-12-22
 LABEL Name="senzing/go-builder" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
@@ -45,7 +45,7 @@ RUN mkdir -p /output \
 # -----------------------------------------------------------------------------
 
 FROM ${IMAGE_FPM} AS fpm
-ENV REFRESHED_AT=2024-07-01
+ENV REFRESHED_AT=2025-12-22
 LABEL Name="senzing/fpm-builder" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
@@ -89,7 +89,7 @@ RUN fpm \
 # -----------------------------------------------------------------------------
 
 FROM ${IMAGE_FINAL} AS final
-ENV REFRESHED_AT=2024-07-01
+ENV REFRESHED_AT=2025-12-22
 LABEL Name="senzing/final-stage" \
       Maintainer="support@senzing.com" \
       Version="0.1.0"
