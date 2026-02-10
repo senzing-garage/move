@@ -32,6 +32,7 @@
     "gotesttools",
     "govulncheck",
     "ICLA",
+    "kernelsam",
     "LDFLAGS",
     "myqueue",
     "OSARCH",
