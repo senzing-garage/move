@@ -60,6 +60,6 @@ jobs:
     needs: go-test-darwin
     permissions:
       contents: read
-    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v3
+    uses: senzing-factory/build-resources/.github/workflows/go-coverage.yaml@v4
     with:
       coverage-config: ./.github/coverage/testcoverage-darwin.yaml
