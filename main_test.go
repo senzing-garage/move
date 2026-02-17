@@ -4,6 +4,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ func TestMain(test *testing.T) {
 
 	outputFile, err := os.CreateTemp(tempDir, "move-main-output-*.jsonl")
 	require.NoError(test, err)
-	err = os.Remove(outputFile.Name())
+	err = os.Remove(filepath.Clean(outputFile.Name())) //nolint:gosec // G703 - path from os.CreateTemp in test
 	require.NoError(test, err)
 
 	test.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile.Name())
