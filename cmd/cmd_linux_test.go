@@ -27,7 +27,7 @@ func Test_RunE_Linux(test *testing.T) {
 
 	outputFile, err := os.CreateTemp(tempDir, "move-cmd-output-*.jsonl")
 	require.NoError(test, err)
-	err = os.Remove(filepath.Clean(outputFile.Name()))
+	err = os.Remove(filepath.Clean(outputFile.Name())) //nolint:gosec // G703 - path from os.CreateTemp in test
 	require.NoError(test, err)
 
 	test.Setenv("SENZING_TOOLS_INPUT_URL", "file://"+inputFile.Name())
