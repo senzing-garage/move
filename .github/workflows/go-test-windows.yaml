@@ -42,13 +42,13 @@ jobs:
           cp cover cover.out
 
       - name: Store coverage file
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cover.out
           path: cover.out
 
       - name: Upload test log
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-log
