@@ -160,7 +160,6 @@ this action moves the PR on the "Garage" project board to "Done".
 [andrewslotin/go-proxy-pull-action]: https://github.com/andrewslotin/go-proxy-pull-action
 [Dependabot Approve and Merge GitHub Action]: dependabot-approve-and-merge.yaml
 [Docker Build Container GitHub Action]: docker-build-container.yaml
-[Docker Push Containers to DockerHub GitHub Action]: docker-push-containers-to-dockerhub.yaml
 [DockerHub]: https://hub.docker.com/
 [github.go]: ../../cmd/github.go
 [Go Proxy Pull GitHub Action]: go-proxy-pull.yaml
