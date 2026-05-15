@@ -21,6 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testNameBadURL      = "test read jsonl file, bad url"
+	testNameSetLogLevel = "Test SetLogLevel"
+	testLogLevelInfo    = "info"
+)
+
 // ----------------------------------------------------------------------------
 // test Move method
 // ----------------------------------------------------------------------------
@@ -127,12 +133,12 @@ func TestBasicMove_Move_table(test *testing.T) {
 			expectedErr: true,
 		},
 		{
-			name:        "test read jsonl file, bad url",
+			name:        testNameBadURL,
 			fields:      fields{InputURL: "{}http://" + filename},
 			expectedErr: true,
 		},
 		{
-			name:        "test read jsonl file, bad url",
+			name:        testNameBadURL,
 			fields:      fields{InputURL: "://"},
 			expectedErr: true,
 		},
@@ -264,12 +270,12 @@ func TestBasicMove_Move_json_output_table(test *testing.T) {
 			expectedErr: true,
 		},
 		{
-			name:        "test read jsonl file, bad url",
+			name:        testNameBadURL,
 			fields:      fields{InputURL: "{}http://" + filename, JSONOutput: true},
 			expectedErr: true,
 		},
 		{
-			name:        "test read jsonl file, bad url",
+			name:        testNameBadURL,
 			fields:      fields{InputURL: "://", JSONOutput: true},
 			expectedErr: true,
 		},
@@ -794,26 +800,26 @@ func TestBasicMove_SetLogLevel(test *testing.T) {
 		expectedErr  bool
 	}{
 		{
-			name:         "Test SetLogLevel",
-			fields:       fields{LogLevel: "info"},
+			name:         testNameSetLogLevel,
+			fields:       fields{LogLevel: testLogLevelInfo},
 			logLevelName: "DEBUG",
 			expectedErr:  false,
 		},
 		{
-			name:         "Test SetLogLevel",
-			fields:       fields{LogLevel: "info"},
+			name:         testNameSetLogLevel,
+			fields:       fields{LogLevel: testLogLevelInfo},
 			logLevelName: "bad",
 			expectedErr:  true,
 		},
 		{
-			name:         "Test SetLogLevel",
-			fields:       fields{JSONOutput: true, LogLevel: "info"},
+			name:         testNameSetLogLevel,
+			fields:       fields{JSONOutput: true, LogLevel: testLogLevelInfo},
 			logLevelName: "DEBUG",
 			expectedErr:  false,
 		},
 		{
-			name:         "Test SetLogLevel",
-			fields:       fields{JSONOutput: true, LogLevel: "info"},
+			name:         testNameSetLogLevel,
+			fields:       fields{JSONOutput: true, LogLevel: testLogLevelInfo},
 			logLevelName: "bad",
 			expectedErr:  true,
 		},
