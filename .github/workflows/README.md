@@ -44,14 +44,6 @@ _Note:_ The Docker image is **not** pushed to [DockerHub].
 - [Docker Build Container GitHub Action]
   - Uses: [senzing-factory/github-action-docker-buildx-build]
 
-## docker-push-containers-to-dockerhub.yaml
-
-After a [Semantic Version] release is created,
-this action builds Docker images on multiple architectures and pushes the Docker images to [DockerHub].
-
-- [Docker Push Containers to DockerHub GitHub Action]
-  - Uses: [senzing-factory/github-action-docker-buildx-build]
-
 ## golangci-lint.yaml
 
 When a change is committed to GitHub or a Pull Request is made against the `main` branch,
@@ -62,7 +54,6 @@ this action runs [golangci-lint] to run multiple linters against the code.
     - [.golangci.yaml]
   - Uses:
     - [actions/checkout]
-    - [senzing-factory/github-action-install-senzing-sdk]
     - [actions/setup-go]
     - [golangci/golangci-lint-action]
 
@@ -85,7 +76,6 @@ this action runs `go test` with coverage testing on macOS.
     - [actions/checkout]
     - [actions/setup-go]
     - [gotesttools/gotestfmt-action]
-    - [senzing-factory/github-action-install-senzing-sdk]
     - [actions/upload-artifact]
     - [senzing-factory/build-resources/.../go-coverage.yaml]
 
@@ -100,7 +90,6 @@ this action runs `go test` with coverage testing on Linux.
     - [actions/checkout]
     - [actions/setup-go]
     - [gotesttools/gotestfmt-action]
-    - [senzing-factory/github-action-install-senzing-sdk]
     - [actions/upload-artifact]
     - [senzing-factory/build-resources/.../go-coverage.yaml]
 
@@ -115,7 +104,6 @@ this action runs `go test` with coverage testing on Windows.
     - [actions/checkout]
     - [actions/setup-go]
     - [gotesttools/gotestfmt-action]
-    - [senzing-factory/github-action-install-senzing-sdk]
     - [actions/upload-artifact]
     - [senzing-factory/build-resources/.../go-coverage.yaml]
 
@@ -172,7 +160,6 @@ this action moves the PR on the "Garage" project board to "Done".
 [andrewslotin/go-proxy-pull-action]: https://github.com/andrewslotin/go-proxy-pull-action
 [Dependabot Approve and Merge GitHub Action]: dependabot-approve-and-merge.yaml
 [Docker Build Container GitHub Action]: docker-build-container.yaml
-[Docker Push Containers to DockerHub GitHub Action]: docker-push-containers-to-dockerhub.yaml
 [DockerHub]: https://hub.docker.com/
 [github.go]: ../../cmd/github.go
 [Go Proxy Pull GitHub Action]: go-proxy-pull.yaml
@@ -199,7 +186,6 @@ this action moves the PR on the "Garage" project board to "Done".
 [senzing-factory/build-resources/.../make-go-github-file.yaml]: https://github.com/senzing-factory/build-resources/blob/main/.github/workflows/make-go-github-file.yaml
 [senzing-factory/build-resources/.../move-pr-to-done-dependabot.yaml]: https://github.com/senzing-factory/build-resources/blob/main/.github/workflows/move-pr-to-done-dependabot.yaml
 [senzing-factory/github-action-docker-buildx-build]: https://github.com/senzing-factory/github-action-docker-buildx-build
-[senzing-factory/github-action-install-senzing-sdk]: https://github.com/senzing-factory/github-action-install-senzing-sdk
 [senzing-factory/github-action-make-go-tag]: https://github.com/senzing-factory/github-action-make-go-tag
 [super-linter]: https://github.com/super-linter/super-linter
 [testcoverage.yaml]: ../coverage/README.md#testcoverageyaml

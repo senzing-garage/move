@@ -67,7 +67,8 @@
     "truthset",
     "unmarshalling",
     "USERPROFILE",
-    "wraperror"
+    "wraperror",
+    "zizmor"
   ],
   "ignorePaths": [
     ".dockerignore",
