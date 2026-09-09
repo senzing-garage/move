@@ -163,7 +163,7 @@ func (move *BasicMove) ProcessJSONL(fileName string, reader io.Reader, recordcha
 			move.log(2001, iteration)
 		}
 
-		if move.RecordMax > 0 && iteration >= (move.RecordMax) {
+		if move.RecordMax > 0 && iteration >= move.RecordMax {
 			break
 		}
 	}
