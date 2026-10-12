@@ -949,11 +949,16 @@ func mockStdout(t *testing.T) (*os.File, *os.File, func()) {
 
 	os.Stdout = writer
 
+	// The clean-up closes reader, which keeps it reachable until clean-up runs.
+	// Otherwise, a caller that discards reader lets the garbage collector close
+	// it, and writes to os.Stdout fail with "broken pipe".
+
 	return reader,
 		writer,
 		func() {
 			// clean-up
 			os.Stdout = origStdout
+			_ = reader.Close()
 		}
 }
 
@@ -972,11 +977,14 @@ func mockStderr(t *testing.T) (*os.File, *os.File, func()) {
 
 	os.Stderr = writer
 
+	// See mockStdout for why the clean-up closes reader.
+
 	return reader,
 		writer,
 		func() {
 			// clean-up
 			os.Stderr = origStderr
+			_ = reader.Close()
 		}
 }
 
