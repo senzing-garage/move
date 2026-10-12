@@ -9,6 +9,22 @@ This project adheres to [Semantic Versioning].
 
 -
 
+## [0.4.0] - 2026-10-12
+
+### Changed in 0.4.0
+
+- Update to Go 1.27.1
+- Sync repository setup files with template-go v0.5.0
+- Update dependencies
+  - github.com/senzing-garage/go-cmdhelping v0.4.0
+  - github.com/senzing-garage/go-helpers v0.7.0
+  - github.com/senzing-garage/go-logging v1.6.0
+  - github.com/senzing-garage/go-queueing v0.5.0
+
+### Fixed in 0.4.0
+
+- Test helpers `mockStdout` and `mockStderr` keep the pipe reader open until clean-up, so Go 1.27 garbage collection no longer breaks stdout in tests
+
 ## [0.3.6] - 2025-10-27
 
 ### Changed in 0.3.6
