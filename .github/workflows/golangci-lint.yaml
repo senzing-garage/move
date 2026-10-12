@@ -42,4 +42,4 @@ jobs:
           args: --config=${{ github.workspace }}/.github/linters/.golangci.yaml
           only-new-issues: false
           # renovate: datasource=github-releases depName=golangci/golangci-lint
-          version: v2.13.2
+          version: v2.14.0
