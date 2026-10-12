@@ -19,11 +19,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@v2.0.0
-        with:
-          tool-cache: false
-
       - name: Get repository name
         id: repo-basename
         run: |
@@ -31,9 +26,9 @@ jobs:
         shell: bash
 
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
-          tool-cache: false
+          preinstalled-runtimes: false
           android: true
           dotnet: true
           haskell: true
