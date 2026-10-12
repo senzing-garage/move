@@ -4,6 +4,10 @@
 
 include makefiles/osdetect.mk
 
+# Tool versions, shared across OS-specific makefiles.
+
+include makefiles/versions.mk
+
 # -----------------------------------------------------------------------------
 # Variables
 # -----------------------------------------------------------------------------
@@ -22,6 +26,7 @@ BUILD_VERSION := $(shell git describe --always --tags --abbrev=0 --dirty  | sed 
 DOCKER_CONTAINER_NAME := $(PROGRAM_NAME)
 DOCKER_IMAGE_NAME := senzing/$(PROGRAM_NAME)
 DOCKER_BUILD_IMAGE_NAME := $(DOCKER_IMAGE_NAME)-build
+DOCKER_SUT_IMAGE_NAME := $(PROGRAM_NAME)_sut
 GIT_REMOTE_URL := $(shell git config --get remote.origin.url)
 GIT_REPOSITORY_NAME := $(shell basename `git rev-parse --show-toplevel`)
 GIT_VERSION := $(shell git describe --always --tags --long --dirty | sed -e 's/\-0//' -e 's/\-g.......//')
@@ -77,6 +82,7 @@ dependencies-for-development: dependencies-for-development-osarch-specific
 	@go install golang.org/x/tools/cmd/godoc@latest
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@go install mvdan.cc/gofumpt@latest
+	@docker-compose pull 2>/dev/null || true
 	@sudo npm install -g cspell@latest
 
 
@@ -160,6 +166,10 @@ run: run-osarch-specific
 
 .PHONY: test
 test: test-osarch-specific
+
+
+.PHONY: test-verbose
+test-verbose: test-verbose-osarch-specific
 
 
 .PHONY: docker-test
